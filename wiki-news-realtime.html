@@ -928,39 +928,6 @@
             return div.innerHTML;
         }
 
-        function togglePause() {
-            isPaused = !isPaused;
-            const btn = document.getElementById('pause-btn');
-
-            if (isPaused) {
-                btn.textContent = '▶️ Resume';
-                btn.classList.add('danger');
-                updateStatus('disconnected', 'Paused');
-            } else {
-                btn.textContent = '⏸️ Pause';
-                btn.classList.remove('danger');
-                updateStatus('connected', 'Connected to Wikipedia EventStreams');
-            }
-        }
-
-        function clearAll() {
-            // Clear all bubbles
-            activeBubbles.forEach((bubble, id) => {
-                bubble.remove();
-                const timeout = bubbleTimeouts.get(id);
-                if (timeout) clearTimeout(timeout);
-            });
-
-            activeBubbles.clear();
-            bubbleTimeouts.clear();
-            headlines = [];
-            bubbleQueue = []; // Clear the queue
-            isProcessingQueue = false;
-
-            renderLeaderboard();
-            updateActiveCount();
-        }
-
         // Update leaderboard times periodically
         setInterval(() => {
             if (headlines.length > 0) {
