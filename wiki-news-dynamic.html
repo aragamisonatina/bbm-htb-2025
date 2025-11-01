@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -200,9 +201,12 @@
         }
 
         @keyframes pulse {
-            0%, 100% {
+
+            0%,
+            100% {
                 transform: scale(1.1);
             }
+
             50% {
                 transform: scale(1.15);
             }
@@ -323,6 +327,7 @@
                 opacity: 0;
                 transform: scale(0.8);
             }
+
             to {
                 opacity: 1;
                 transform: scale(1);
@@ -400,18 +405,18 @@
             h1 {
                 font-size: 32px;
             }
-            
+
             .visualization-container {
                 min-height: 400px;
                 padding: 20px;
             }
-            
+
             .bubble.large {
                 width: 200px;
                 height: 200px;
                 font-size: 18px;
             }
-            
+
             .bubble.medium {
                 width: 150px;
                 height: 150px;
@@ -426,6 +431,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- Leaderboard Sidebar -->
@@ -442,11 +448,11 @@
         <div class="main-content">
             <h1>WIKI-NEWS</h1>
             <p class="subtitle">generated based on recent wikipedia edits</p>
-            
+
             <div class="visualization-container" id="visualization">
                 <div class="loading">Loading Wikipedia analysis...</div>
             </div>
-            
+
             <div class="stats">
                 <div>
                     <strong id="edit-count">0</strong> edits in the last <strong id="time-window">0</strong> minutes
@@ -497,7 +503,7 @@
             // Update stats
             document.getElementById('edit-count').textContent = data.total_edits || 173;
             document.getElementById('time-window').textContent = data.time_window_minutes || 9;
-            
+
             // Update mood
             const moodIndicator = document.getElementById('mood-indicator');
             const moodText = document.getElementById('mood-text');
@@ -518,7 +524,7 @@
             for (let i = 0; i < numDecorative; i++) {
                 const size = getRandomItem(['small', 'tiny']);
                 const color = getRandomItem(['blue', 'purple', 'dark-blue', 'light-blue', 'gold', 'brown']);
-                
+
                 const position = getRandomNonOverlappingPosition(container, size, bubbles, sizeMap);
                 if (position) {
                     bubbles.push({ ...position, radius: sizeMap[size] });
@@ -531,16 +537,16 @@
                 const size = headline.size || 'medium';
                 const color = headline.color || 'blue';
                 const headlineId = `headline-${i}`;
-                
+
                 const position = getRandomNonOverlappingPosition(container, size, bubbles, sizeMap);
                 if (position) {
                     bubbles.push({ ...position, radius: sizeMap[size] });
                     const bubble = createBubble(
-                        container, 
-                        headline.headline, 
-                        size, 
-                        color, 
-                        position, 
+                        container,
+                        headline.headline,
+                        size,
+                        color,
+                        position,
                         (numDecorative + i) * 0.05,
                         headline,
                         headlineId
@@ -560,10 +566,10 @@
             bubble.style.top = `${position.y}px`;
             bubble.textContent = text;
             bubble.style.animationDelay = `${delay}s`;
-            
+
             if (data && headlineId) {
                 bubble.dataset.headlineId = headlineId;
-                
+
                 bubble.addEventListener('mouseenter', (e) => {
                     highlightHeadline(headlineId);
                     showTooltip(e, data);
@@ -574,7 +580,7 @@
                     hideTooltip();
                 });
             }
-            
+
             container.appendChild(bubble);
             return bubble;
         }
@@ -594,9 +600,9 @@
                 item.className = 'leaderboard-item';
                 item.dataset.headlineId = headlineId;
 
-                const sentimentClass = headline.sentiment > 0.1 ? 'sentiment-positive' : 
-                                      headline.sentiment < -0.1 ? 'sentiment-negative' : 
-                                      'sentiment-neutral';
+                const sentimentClass = headline.sentiment > 0.1 ? 'sentiment-positive' :
+                    headline.sentiment < -0.1 ? 'sentiment-negative' :
+                        'sentiment-neutral';
 
                 item.innerHTML = `
                     <div class="leaderboard-rank">#${index + 1}</div>
@@ -634,7 +640,7 @@
             const bubble = headlineBubbles.get(headlineId);
             if (bubble) {
                 bubble.classList.add('highlighted');
-                
+
                 // Dim other bubbles with headlines
                 headlineBubbles.forEach((otherBubble, otherId) => {
                     if (otherId !== headlineId) {
@@ -689,22 +695,22 @@
             const bubbleSize = sizeMap[size];
             const maxX = containerRect.width - bubbleSize - 40;
             const maxY = containerRect.height - bubbleSize - 40;
-            
+
             let attempts = 0;
             const maxAttempts = 50;
-            
+
             while (attempts < maxAttempts) {
                 const position = {
                     x: Math.random() * maxX + 20,
                     y: Math.random() * maxY + 20
                 };
-                
+
                 if (!checkOverlap({ ...position, radius: sizeMap[size] }, existingBubbles)) {
                     return position;
                 }
                 attempts++;
             }
-            
+
             return null;
         }
 
@@ -714,7 +720,7 @@
                 const dy = newBubble.y - bubble.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const minDistance = (newBubble.radius + bubble.radius) * 1.2;
-                
+
                 if (distance < minDistance) {
                     return true;
                 }
@@ -762,4 +768,5 @@
         window.addEventListener('load', loadFromJSON);
     </script>
 </body>
+
 </html>

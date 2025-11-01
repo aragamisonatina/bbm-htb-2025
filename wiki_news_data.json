@@ -5,7 +5,7 @@
   "time_window_minutes": 15,
   "headlines": [
     {
-      "headline": "Investigation: Why Added is trending on Wikipedia",
+      "headline": "Alert: Rapid changes to Added information",
       "topic": "added",
       "edit_count": 6,
       "sentiment": -0.3256333333333334,
@@ -18,7 +18,7 @@
       ]
     },
     {
-      "headline": "Trending Now: Timeline gaining attention across Wikipedia",
+      "headline": "Timeline becomes hot topic on Wikipedia",
       "topic": "timeline",
       "edit_count": 4,
       "sentiment": -0.20095,
@@ -31,7 +31,7 @@
       ]
     },
     {
-      "headline": "Investigation: Why Fractal is trending on Wikipedia",
+      "headline": "Latest: Fractal sparks wave of Wikipedia updates",
       "topic": "fractal",
       "edit_count": 4,
       "sentiment": -0.1351,
@@ -44,7 +44,7 @@
       ]
     },
     {
-      "headline": "Watch: Removed articles under heavy editing",
+      "headline": "Breaking: Removed sees surge in Wikipedia edits",
       "topic": "removed",
       "edit_count": 4,
       "sentiment": -0.0129,
@@ -57,7 +57,7 @@
       ]
     },
     {
-      "headline": "Investigation: Why Updated is trending on Wikipedia",
+      "headline": "Watch: Updated articles under heavy editing",
       "topic": "updated",
       "edit_count": 4,
       "sentiment": 0.0,
