@@ -32,6 +32,20 @@ STOPWORDS = {
 nltk.download("vader_lexicon", quiet=True)
 analyzer = SentimentIntensityAnalyzer()
 
+# -------- Helpers to compute byte delta from event --------
+def _size_delta(change: dict) -> int:
+    """Return absolute byte change for the edit if available, else 0."""
+    length = change.get("length") or {}
+    old = length.get("old"); new = length.get("new")
+    if isinstance(old, int) and isinstance(new, int):
+        return abs(new - old)
+    rev = change.get("revision") or {}
+    osz = (rev.get("old") or {}).get("size")
+    nsz = (rev.get("new") or {}).get("size")
+    if isinstance(osz, int) and isinstance(nsz, int):
+        return abs(nsz - osz)
+    return 0
+
 # -------- Minimal stream (no heavy filters, time-boxed) --------
 def collect_for(seconds=BATCH_SECONDS):
     """Collect ANY recent changes for a fixed time window (nearly no filtering)."""
@@ -56,16 +70,19 @@ def collect_for(seconds=BATCH_SECONDS):
 
                 title = str(change.get("title", "") or "").strip()
                 comment = str(change.get("comment", "") or "").strip()
+                delta = _size_delta(change)
+
                 edits.append({
                     "user": change.get("user", ""),
                     "title": title,
                     "comment": comment,
                     "timestamp": change.get("timestamp", 0),
+                    "delta": int(delta),
                 })
     except Exception as e:
         print(f"⚠️ stream error: {e}")
 
-    return pd.DataFrame(edits, columns=["user","title","comment","timestamp"])
+    return pd.DataFrame(edits, columns=["user","title","comment","timestamp","delta"])
 
 # -------- Cleaning helpers --------
 ADMIN_TERMS = {
@@ -168,7 +185,7 @@ def llama_headlines_batch(entries, mood, n=TOP_HEADLINES):
         if len(cleaned) >= n: break
     return cleaned
 
-# -------- One batch → headlines --------
+# -------- One batch → headlines (with byte-weighted scores) --------
 def run_batch(seconds=BATCH_SECONDS):
     print(f"\n⏱️  Batch window: {seconds}s  ({datetime.now().strftime('%H:%M:%S')})")
     df = collect_for(seconds=seconds)
@@ -178,23 +195,52 @@ def run_batch(seconds=BATCH_SECONDS):
         print("   (no events this window)")
         return
 
-    # Build entries for summarization + mood
+    # Build entries and mood
     entries, sentiments = [], []
     for _, row in df.iterrows():
         title = str(row["title"])
         edit  = str(row["comment"])
+        delta = int(row.get("delta", 0))
         full_text = f"{title.strip()}: {edit.strip()}"
         sentiments.append(analyzer.polarity_scores(edit)["compound"])
-        entries.append({"text": full_text})
+        entries.append({"text": full_text, "delta": delta})
 
     avg_sentiment = sum(sentiments) / max(1, len(sentiments))
     mood = "positive" if avg_sentiment > 0.2 else "negative" if avg_sentiment < -0.2 else "neutral"
     print(f"   mood: {mood.upper()}")
 
+    # Build a term → total_bytes map from the window
+    term_bytes = Counter()
+    for e in entries:
+        txt = _strip_admin_markup(e["text"])
+        delta = int(e["delta"])
+        for w in re.findall(r"\b[a-zA-Z]{3,}\b", txt):
+            wl = w.lower()
+            if wl in STOPWORDS or wl in ADMIN_TERMS:
+                continue
+            term_bytes[wl] += max(0, delta)
+
+    # Generate headlines (one call)
     print("📰 Headlines:")
     try:
-        for h in llama_headlines_batch(entries, mood, n=TOP_HEADLINES):
-            print(" →", h)
+        headlines = llama_headlines_batch(entries, mood, n=TOP_HEADLINES)
+
+        def score_headline(h: str) -> int:
+            # Sum bytes for all words in the headline
+            s = 0
+            for w in re.findall(r"\b[a-zA-Z]{3,}\b", h.lower()):
+                if w in STOPWORDS or w in ADMIN_TERMS:
+                    continue
+                s += term_bytes.get(w, 0)
+            return int(s)
+
+        # Emit as tuples: (Title, bytes)
+        scored = [(h, score_headline(h)) for h in headlines]
+        # If you want them sorted by bytes desc:
+        scored.sort(key=lambda t: t[1], reverse=True)
+
+        for h, b in scored:
+            print(f" → ({h}, {b})")
     except Exception as e:
         print(f"   🚫 Llama error: {e}")
 
