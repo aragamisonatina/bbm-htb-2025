@@ -107,7 +107,7 @@ def generate_headline_ollama(edit_data):
         "DO NOT mention 'Wikipedia', 'WikiProject', 'Talk', 'Draft', or 'Redirects'. "
         "Focus on the article's SUBJECT MATTER as if reporting news about that topic. "
         "Make it sound like a real news headline. "
-        "Output ONLY the headline, nothing else."
+        "RESPOND ONLY WITH the headline. Headline: "
     )
     
     user = textwrap.dedent(f"""

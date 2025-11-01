@@ -194,10 +194,10 @@ function truncateForBubble(text: string, size: BubbleState["size"]): string {
   if (!text) return "";
 
   const maxLengths = {
-    large: 100, // ~100 characters for large bubbles (increased from 80)
-    medium: 65, // ~65 characters for medium bubbles (increased from 50)
-    small: 40, // ~40 characters for small bubbles (increased from 30)
-    tiny: 20, // ~20 characters for tiny bubbles (increased from 15)
+    large: 140,  // ~140 characters for large bubbles (increased from 100)
+    medium: 90,  // ~90 characters for medium bubbles (increased from 65)
+    small: 55,   // ~55 characters for small bubbles (increased from 40)
+    tiny: 30,    // ~30 characters for tiny bubbles (increased from 20)
   };
 
   const maxLength = maxLengths[size];
