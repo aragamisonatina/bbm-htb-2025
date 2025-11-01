@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WIKI-NEWS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 300;
+        }
+
+        .visualization-container {
+            background-color: #e8e8e8;
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            min-height: 500px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.3;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .bubble:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .bubble.large {
+            width: 280px;
+            height: 280px;
+            font-size: 24px;
+        }
+
+        .bubble.medium {
+            width: 200px;
+            height: 200px;
+            font-size: 18px;
+        }
+
+        .bubble.small {
+            width: 120px;
+            height: 120px;
+            font-size: 14px;
+        }
+
+        .bubble.tiny {
+            width: 80px;
+            height: 80px;
+            font-size: 0;
+        }
+
+        /* Color schemes */
+        .bubble.red {
+            background-color: #c94343;
+            color: #000;
+        }
+
+        .bubble.dark-red {
+            background-color: #8b3535;
+            color: #000;
+        }
+
+        .bubble.orange {
+            background-color: #e89148;
+            color: #000;
+        }
+
+        .bubble.light-orange {
+            background-color: #f5b07a;
+            color: #000;
+        }
+
+        .bubble.blue {
+            background-color: #5a7eb8;
+            color: #000;
+        }
+
+        .bubble.dark-blue {
+            background-color: #3d4f6f;
+            color: #fff;
+        }
+
+        .bubble.purple {
+            background-color: #6b4c9f;
+            color: #fff;
+        }
+
+        .bubble.light-blue {
+            background-color: #7b9ad1;
+            color: #000;
+        }
+
+        .bubble.gold {
+            background-color: #d4a853;
+            color: #000;
+        }
+
+        .bubble.brown {
+            background-color: #8b6f47;
+            color: #fff;
+        }
+
+        .stats {
+            margin-top: 30px;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .stats strong {
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: #3d4f6f;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background-color: #5a7eb8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 32px;
+            }
+            
+            .visualization-container {
+                min-height: 400px;
+                padding: 20px;
+            }
+            
+            .bubble.large {
+                width: 200px;
+                height: 200px;
+                font-size: 18px;
+            }
+            
+            .bubble.medium {
+                width: 150px;
+                height: 150px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WIKI-NEWS</h1>
+        <p class="subtitle">generated based on recent wikipedia edits</p>
+        
+        <div class="visualization-container" id="visualization">
+            <div class="loading">Analyzing Wikipedia edits...</div>
+        </div>
+        
+        <div class="stats" id="stats">
+            <strong id="edit-count">0</strong> edits in the last <strong id="time-window">0</strong> minutes
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="generateHeadlines()">Refresh Headlines</button>
+
+    <script>
+        // Sample headlines data structure
+        const headlineTemplates = [
+            "Apple unveils iPhone 18",
+            "The motive behind Charlie Kirk's killing: What we know",
+            "What to Know About Prince Andrew's Epstein Fallout",
+            "Breaking: Major tech announcement",
+            "Developing: Political controversy unfolds",
+            "Scientists discover groundbreaking finding",
+            "Market reaches all-time high",
+            "Climate summit reaches agreement",
+            "New study reveals surprising results",
+            "International tensions escalate",
+            "Award ceremony highlights",
+            "Sports team wins championship",
+            "Celebrity announces retirement",
+            "New law passes parliament",
+            "Economic indicators show growth"
+        ];
+
+        const colors = [
+            'red', 'dark-red', 'orange', 'light-orange', 
+            'blue', 'dark-blue', 'purple', 'light-blue', 
+            'gold', 'brown'
+        ];
+
+        const sizes = ['large', 'medium', 'small', 'tiny'];
+
+        function getRandomItem(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        function getRandomPosition(container, size) {
+            const containerRect = container.getBoundingClientRect();
+            const sizeMap = {
+                'large': 280,
+                'medium': 200,
+                'small': 120,
+                'tiny': 80
+            };
+            
+            const bubbleSize = sizeMap[size];
+            const maxX = containerRect.width - bubbleSize - 40;
+            const maxY = containerRect.height - bubbleSize - 40;
+            
+            return {
+                x: Math.random() * maxX + 20,
+                y: Math.random() * maxY + 20
+            };
+        }
+
+        function checkOverlap(newBubble, existingBubbles) {
+            for (let bubble of existingBubbles) {
+                const dx = newBubble.x - bubble.x;
+                const dy = newBubble.y - bubble.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = (newBubble.radius + bubble.radius) * 1.1;
+                
+                if (distance < minDistance) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function generateHeadlines() {
+            const container = document.getElementById('visualization');
+            container.innerHTML = '';
+            
+            const numBubbles = 15 + Math.floor(Math.random() * 10);
+            const bubbles = [];
+            const sizeMap = {
+                'large': 140,
+                'medium': 100,
+                'small': 60,
+                'tiny': 40
+            };
+
+            // Create bubbles with non-overlapping positions
+            for (let i = 0; i < numBubbles; i++) {
+                const size = i < 3 ? getRandomItem(['large', 'medium']) : getRandomItem(sizes);
+                const color = getRandomItem(colors);
+                const headline = i < 3 ? headlineTemplates[i] : '';
+                
+                let position;
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                do {
+                    position = getRandomPosition(container, size);
+                    attempts++;
+                } while (
+                    checkOverlap(
+                        { ...position, radius: sizeMap[size] },
+                        bubbles
+                    ) && attempts < maxAttempts
+                );
+
+                if (attempts < maxAttempts) {
+                    bubbles.push({ ...position, radius: sizeMap[size] });
+
+                    const bubble = document.createElement('div');
+                    bubble.className = `bubble ${size} ${color}`;
+                    bubble.style.left = `${position.x}px`;
+                    bubble.style.top = `${position.y}px`;
+                    bubble.textContent = headline;
+                    bubble.style.animationDelay = `${i * 0.05}s`;
+                    
+                    container.appendChild(bubble);
+                }
+            }
+
+            // Update stats
+            const editCount = 120 + Math.floor(Math.random() * 150);
+            const timeWindow = 5 + Math.floor(Math.random() * 10);
+            document.getElementById('edit-count').textContent = editCount;
+            document.getElementById('time-window').textContent = timeWindow;
+        }
+
+        // Generate headlines on page load
+        window.addEventListener('load', generateHeadlines);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(generateHeadlines, 30000);
+    </script>
+</body>
+</html>

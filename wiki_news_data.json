@@ -1,0 +1,119 @@
+{
+  "mood": "neutral",
+  "mood_score": -0.029435,
+  "total_edits": 40,
+  "time_window_minutes": 15,
+  "headlines": [
+    {
+      "headline": "Investigation: Why Added is trending on Wikipedia",
+      "topic": "added",
+      "edit_count": 6,
+      "sentiment": -0.3256333333333334,
+      "size": "large",
+      "color": "dark-red",
+      "articles": [
+        "Wikipedia administrator conduct",
+        "History of British rail infrastructure",
+        "Angelica Sariel Lanvi"
+      ]
+    },
+    {
+      "headline": "Trending Now: Timeline gaining attention across Wikipedia",
+      "topic": "timeline",
+      "edit_count": 4,
+      "sentiment": -0.20095,
+      "size": "medium",
+      "color": "dark-red",
+      "articles": [
+        "Israeli-Palestinian conflict timeline",
+        "Timeline of AI legislation",
+        "Israeli-Palestinian conflict timeline"
+      ]
+    },
+    {
+      "headline": "Investigation: Why Fractal is trending on Wikipedia",
+      "topic": "fractal",
+      "edit_count": 4,
+      "sentiment": -0.1351,
+      "size": "medium",
+      "color": "orange",
+      "articles": [
+        "FRACTAL Corporation",
+        "Queen Ishtanna of Krethesal",
+        "FRACTAL Corporation"
+      ]
+    },
+    {
+      "headline": "Watch: Removed articles under heavy editing",
+      "topic": "removed",
+      "edit_count": 4,
+      "sentiment": -0.0129,
+      "size": "medium",
+      "color": "orange",
+      "articles": [
+        "Kikuri Murasaki",
+        "Shokuch?wa no Kiara",
+        "Kikuri Murasaki"
+      ]
+    },
+    {
+      "headline": "Investigation: Why Updated is trending on Wikipedia",
+      "topic": "updated",
+      "edit_count": 4,
+      "sentiment": 0.0,
+      "size": "medium",
+      "color": "orange",
+      "articles": [
+        "Climate change denial tactics",
+        "Public housing in California",
+        "Climate change denial tactics"
+      ]
+    }
+  ],
+  "stats": {
+    "total_articles": 20,
+    "avg_sentiment": -0.029435,
+    "top_keywords": [
+      {
+        "word": "added",
+        "count": 20
+      },
+      {
+        "word": "removed",
+        "count": 10
+      },
+      {
+        "word": "section",
+        "count": 8
+      },
+      {
+        "word": "under",
+        "count": 6
+      },
+      {
+        "word": "updated",
+        "count": 6
+      },
+      {
+        "word": "recent",
+        "count": 6
+      },
+      {
+        "word": "fractal",
+        "count": 6
+      },
+      {
+        "word": "clarified",
+        "count": 6
+      },
+      {
+        "word": "social",
+        "count": 6
+      },
+      {
+        "word": "reflect",
+        "count": 4
+      }
+    ]
+  }
+}
