@@ -123,7 +123,7 @@ function checkOverlap(newPos: { x: number, y: number, radius: number }, existing
 
 // Gets a random non-overlapping position
 function getRandomPosition(
-  containerEl: HTMLDivElement | null, // <-- ADD | null HERE
+  containerEl: HTMLDivElement | null,
   size: BubbleState['size'], 
   existingBubbles: BubbleState[]
 ): { x: number, y: number } | null {
@@ -203,17 +203,15 @@ function App() {
   const [now, setNow] = useState(() => new Date()); 
 
   // --- Refs ---
-  // Refs are used for values that persist across renders but don't trigger a re-render
   const visContainerRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  // Use refs for the queue to avoid re-renders on every push
   const bubbleQueueRef = useRef<WikiEditData[]>([]);
   const isProcessingQueueRef = useRef(false);
 
   // --- Core Logic (Callbacks) ---
 
-  // This function adds a bubble to state and sets timers for its removal
-  const addBubble = useCallback((data: WikiEditData, changeSize: number) => {
+  // MODIFIED: This function now accepts a 'headline' string
+  const addBubble = useCallback((data: WikiEditData, changeSize: number, headline: string) => {
     setBubbles(prevBubbles => {
       const { size, colorClass } = getBubbleStyle(data, changeSize);
       
@@ -222,7 +220,7 @@ function App() {
 
       const newBubble: BubbleState = {
         id: `bubble-${data.id}-${Math.random()}`,
-        title: data.title,
+        title: headline, // <-- USES THE GENERATED HEADLINE
         user: data.user || 'Anonymous',
         changeSize: changeSize,
         size: size,
@@ -230,7 +228,7 @@ function App() {
         x: position.x,
         y: position.y,
         state: 'appearing',
-        rawData: data
+        rawData: data // <-- Tooltip can still access original data
       };
 
       // Set timers to fade and remove the bubble
@@ -253,11 +251,11 @@ function App() {
     });
   }, []); // Empty dependency array, safe because it uses state setters
 
-  // This function adds a new headline to state
-  const addHeadline = useCallback((data: WikiEditData, changeSize: number) => {
+  // MODIFIED: This function now accepts a 'headline' string
+  const addHeadline = useCallback((data: WikiEditData, changeSize: number, headline: string) => {
     const newHeadline: HeadlineState = {
       id: `headline-${data.id}-${Math.random()}`,
-      title: data.title,
+      title: headline, // <-- USES THE GENERATED HEADLINE
       user: data.user || 'Anonymous',
       changeSize: changeSize,
       timestamp: new Date(data.timestamp * 1000),
@@ -269,20 +267,46 @@ function App() {
     setHeadlines(prev => [newHeadline, ...prev].slice(0, LEADERBOARD_SIZE));
   }, []); // Empty dependency array
 
-  // This function processes a single edit from the queue
-  const processEdit = useCallback((data: WikiEditData) => {
+  // MODIFIED: This function is now async and calls the API
+  const processEdit = useCallback(async (data: WikiEditData) => { // <-- 1. Make it async
+    const changeSize = (data.length?.new || 0) - (data.length?.old || 0);
+    let headlineToUse = data.title; // Default to the original title as a fallback
+
+    try {
+      // 2. Call your new API route
+      const response = await fetch('/api/generate-headline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: data.title,
+          user: data.user,
+          comment: data.comment
+        })
+      });
+
+      if (response.ok) {
+        const { headline } = await response.json();
+        headlineToUse = headline; // Use the AI-generated headline
+      } else {
+        console.error('API Error, using fallback title');
+      }
+    } catch (error) {
+      console.error('Failed to fetch headline, using fallback title:', error);
+      // Fallback: headlineToUse is already set to data.title
+    }
+
+    // 3. Pass the (new or fallback) headline to your functions
+    addBubble(data, changeSize, headlineToUse);
+    addHeadline(data, changeSize, headlineToUse);
+
+    // 4. Update stats (this is not async, so it's fine)
     setStats(prev => ({
       ...prev,
       totalEdits: prev.totalEdits + 1,
       lastEdit: new Date().toLocaleTimeString()
     }));
 
-    const changeSize = (data.length?.new || 0) - (data.length?.old || 0);
-
-    addBubble(data, changeSize);
-    addHeadline(data, changeSize);
-
-  }, [addBubble, addHeadline]);
+  }, [addBubble, addHeadline]); // Dependencies are correct
 
   // This function processes the queue with a delay
   const processQueue = useCallback(() => {
@@ -296,6 +320,8 @@ function App() {
     setStats(prev => ({ ...prev, queueCount: bubbleQueueRef.current.length }));
 
     if (data) {
+      // processEdit is async, but we don't need to 'await' it here.
+      // We want it to fire and then let the timeout schedule the next one.
       processEdit(data);
     }
 
@@ -359,7 +385,7 @@ function App() {
         console.log('🛑 EventStream connection closed');
       }
     };
-  }, [processQueue]); // Re-run if processQueue (by reference) changes (it shouldn't)
+  }, [processQueue]); // Re-run if processQueue (by reference) changes
 
   // 2. Effect to update the "time ago" ticker
   useEffect(() => {
@@ -374,7 +400,7 @@ function App() {
   // --- Tooltip Handlers ---
 
   const handleShowTooltip = (e: React.MouseEvent, bubble: BubbleState) => {
-    const data = bubble.rawData;
+    const data = bubble.rawData; // Use the original data for the tooltip
     const changeText = bubble.changeSize > 0 ? `+${bubble.changeSize}` : bubble.changeSize;
     
     setTooltip({
@@ -471,6 +497,7 @@ function App() {
                 onMouseEnter={(e) => handleShowTooltip(e, bubble)}
                 onMouseLeave={handleHideTooltip}
               >
+                {/* Display the AI-generated headline in the bubble */}
                 {bubble.size !== 'tiny' ? bubble.title : ''}
               </div>
             ))}
