@@ -1,200 +1,111 @@
-# app/llm.py
-"""
-LLM-facing utilities:
-- Build compact batch context for the model
-- Call Ollama in strict-JSON mode (retry on bad output)
-- Clean/normalize model headlines (keep apostrophes & hyphens)
-- Drop unsafe/NSFW outputs
-- Fall back to extractive headlines if the model fails
-"""
+# app/llm.py  (drop-in replacement for the per-edit headline function)
 
 import re
 import json
 import requests
 import textwrap
 import unicodedata
-from typing import List, Dict
-from collections import Counter
-
+from typing import Optional
 from config import Settings
-from cleaning import strip_admin_markup
-from scoring import simple_fallback_headlines  # robust, never-empty fallback
+from cleaning import strip_admin_markup, normalize_title, normalize_comment
 
-# Words we never want in final headlines (keep small and targeted)
-OFF_LIMIT = {
-    # sexual / explicit / profane – extend only if needed
-    "masturbate", "masturbation", "porn", "pornography", "xxx",
-    "sex", "sexual", "fetish", "nsfw",
-    # add any absolutely off-limits terms here
-}
+# obvious non-headlines we should never accept
+BAD_SINGLETONS = {"true", "false", "null", "none", "headline", "ok", "yes", "no"}
 
-# Boilerplate / namespace-y tokens to drop from generations
-BAN_WORDS = {
-    "whatlinkshere", "special", "wikiproject", "talk",
-    "articles", "class", "stub", "category", "categories", "wp",
-}
-
-# ---------------------------------------------------------------------
-# Context builder (for the whole window)
-# ---------------------------------------------------------------------
-
-def batch_context(entries: List[Dict], max_chars: int = 600) -> str:
-    """Summarize the window with common terms + a few short examples."""
-    words, examples = [], []
-    for e in entries[:8]:
-        txt = strip_admin_markup(f'{e.get("title","")}: {e.get("comment","")}')
-        examples.append((txt[:140] + "...") if len(txt) > 140 else txt)
-        words += re.findall(r"\b[a-zA-Z]{5,}\b", txt)
-    common = ", ".join([w for w, _ in Counter(w.lower() for w in words).most_common(15)])
-    blob = f"Common terms: {common}\nExamples:\n- " + "\n- ".join(examples)
-    return blob[:max_chars]
-
-# ---------------------------------------------------------------------
-# Headline post-processing
-# ---------------------------------------------------------------------
-
-def _strip_bad_punct_keep_apostrophe(s: str) -> str:
-    """Remove links/angle/quote clutter; keep letters/spaces/'/- and collapse spaces."""
+def _clean_text_keep_apostrophes(s: str) -> str:
+    s = unicodedata.normalize("NFC", str(s or ""))
     s = re.sub(r"\[\[|\]\]|\{|\}|\(|\)|<|>|https?://\S+", " ", s)
-    s = s.replace("“", " ").replace("”", " ").replace("«", " ").replace("»", " ").replace('"', " ")
-    return re.sub(r"\s+", " ", s).strip()
+    s = s.replace("“"," ").replace("”"," ").replace("«"," ").replace("»"," ").replace('"'," ")
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
 
-def _contains_off_limit(s: str) -> bool:
-    """True if any off-limit token appears as a word."""
-    return any(tok in OFF_LIMIT for tok in re.findall(r"\b[a-z']+\b", s.lower()))
+def looks_like_headline(text: str, max_words: int = 12, min_words: int = 2) -> bool:
+    """Heuristics to ensure the string resembles a human headline."""
+    if not text:
+        return False
+    t = text.strip()
+    # reject trivial booleans / placeholders
+    if t.lower() in BAD_SINGLETONS:
+        return False
+    # word count bounds
+    words = re.findall(r"[A-Za-z][A-Za-z'\-]+", t)
+    if not (min_words <= len(words) <= max_words):
+        return False
+    # require some alphabetic density
+    letters = sum(ch.isalpha() for ch in t)
+    if letters < max(6, len(t) // 3):
+        return False
+    return True
 
-def sanitize_headline(h: str) -> str:
-    """Return '' if unsafe; else the headline unchanged."""
-    return "" if _contains_off_limit(h) else h
-
-def clean_headline(h: str, max_words: int) -> str:
+def _extractive_fallback(title: str, comment: str, max_words: int = 12) -> str:
     """
-    NFC normalize, drop banned tokens, cap to `max_words`,
-    allow either short sentence or noun phrase (min 2 words),
-    keep apostrophes & hyphens.
+    Build a safe, compact fallback headline from title/comment.
     """
-    # tolerate dict-like JSON
-    try:
-        if isinstance(h, str) and h.lstrip().startswith("{"):
-            obj = json.loads(h)
-            if isinstance(obj, dict):
-                h = " ".join(str(v) for v in obj.values() if isinstance(v, (str, int, float)))
-    except Exception:
-        pass
+    title = normalize_title(title)
+    comment = normalize_comment(comment)
+    base = title if title else "Article updated"
+    # keep it short
+    words = re.findall(r"[A-Za-z][A-Za-z'\-]+", f"{base} {comment}")
+    if not words:
+        return base[:60]
+    trimmed = " ".join(words[:max_words])
+    # capitalise first letter
+    return trimmed[0].upper() + trimmed[1:] if trimmed else base
 
-    h = unicodedata.normalize("NFC", str(h))
-    h = _strip_bad_punct_keep_apostrophe(h)
+def generate_headline_for_edit(title: str, comment: str, s: Settings) -> str:
+    """
+    Per-edit: ask for a single plain-text headline (no JSON). Validate and fallback.
+    """
+    clean_title = normalize_title(title)
+    clean_comment = normalize_comment(comment)
 
-    words = [w for w in h.split() if w.lower() not in BAN_WORDS][:max_words]
-    if len(words) < 2:  # allow noun phrases: minimum 2 words
-        return ""
-
-    # gentle lead-cap
-    h = " ".join(words)
-    if h:
-        h = h[0].upper() + h[1:]
-    return h.strip(" -:")
-
-# ---------------------------------------------------------------------
-# JSON parsing + Ollama call
-# ---------------------------------------------------------------------
-
-def _parse_json_array(text: str) -> List[str]:
-    """Return list of strings if `text` is/contains a JSON array; else []."""
-    try:
-        data = json.loads(text)
-        if isinstance(data, list):
-            return [str(x) for x in data if isinstance(x, (str, int, float))]
-        if isinstance(data, dict):  # sometimes the model replies with an object
-            return [str(v) for v in data.values() if isinstance(v, (str, int, float))]
-    except Exception:
-        pass
-    m = re.search(r"\[.*\]", text, re.S)
-    if m:
-        try:
-            arr = json.loads(m.group(0))
-            if isinstance(arr, list):
-                return [str(x) for x in arr if isinstance(x, (str, int, float))]
-        except Exception:
-            return []
-    return []
-
-def _call_ollama(prompt: str, s: Settings, temperature: float) -> str:
-    """One Ollama call in strict JSON mode; return raw response string."""
-    r = requests.post(
-        f"{s.ollama_host}/api/generate",
-        json={
-            "model": s.ollama_model,
-            "prompt": prompt,
-            "options": {
-                "temperature": max(0.5, temperature - 0.1),  # slightly cooler for stability
-                "seed": s.seed,
-                "num_ctx": s.num_ctx,
-                "num_gpu": s.num_gpu,
-                "top_p": 0.9,
-                "top_k": 40,
-            },
-            "format": "json",      # <- ask for JSON tokenization
-            "stream": False,
-        },
-        timeout=getattr(s, "request_timeout_s", 60),
+    system = (
+        "You are a news editor. Based on the following real-time Wikipedia edit, "
+        "write one compelling, short news headline (under 12 words). "
+        "Do not use quotes or brackets. No emojis."
     )
-    r.raise_for_status()
-    return r.json().get("response", "").strip()
-
-# ---------------------------------------------------------------------
-# Public: generate N headlines for a window
-# ---------------------------------------------------------------------
-
-def generate_batch_headlines(entries: List[Dict], mood: str, s: Settings, n: int) -> List[str]:
-    """
-    Try twice to get valid JSON headlines from the model; if it still
-    fails, fall back to extractive headlines so output is never empty.
-    """
-    rules = (
-        "Write newsroom-style headlines. Each headline must be either: "
-        "(a) a concise, grammatical sentence, OR (b) a clean noun phrase. "
-        f"Hard cap: ≤{s.max_words} words. Professional tone. No slang, no emojis. "
-        "Letters and spaces only (keep apostrophes and hyphens). "
-        "Avoid bare namespaces (Category, Talk, WikiProject) and boilerplate. "
-        "Do NOT use explicit/sexual/profane words. "
-        "Do NOT mention 'Wikipedia', 'WikiProject', 'Talk', 'Draft', or page names. "
-        "Return a JSON array of strings only."
-    )
-    system = f"You output strictly valid JSON. Headlines follow rules:\n{rules}"
     user = textwrap.dedent(f"""
-        Mood: {mood.upper()}
-        Context (cleaned):
-        {batch_context(entries)}
+        - Article Title: {clean_title or "(untitled)"}
+        - Edit Comment: {clean_comment or "No comment"}
+
+        Your response MUST be the headline text and nothing else.
+        Do not include any explanations.
     """).strip()
-    prompt = f"<<SYS>>{system}<<SYS>>\n\n{user}\n\nReturn the JSON array now."
 
-    # Attempt 1
-    content = _call_ollama(prompt, s, temperature=max(0.3, s.temperature * 0.75))
-    items = _parse_json_array(content)
+    payload = {
+        "model": s.ollama_model,
+        "prompt": f"<<SYS>>{system}<<SYS>>\n\n{user}",
+        "options": {
+            "temperature": max(0.3, getattr(s, "temperature", 0.7) * 0.8),
+            "seed": getattr(s, "seed", 42),
+            "num_ctx": getattr(s, "num_ctx", 512),
+            "num_gpu": getattr(s, "num_gpu", 0),
+            "top_p": 0.9,
+            "top_k": 40,
+        },
+        # IMPORTANT: no JSON format for single headline
+        "stream": False,
+    }
 
-    # Attempt 2 (stricter + cooler) if empty
-    if not items:
-        stricter = prompt + "\nOnly the JSON array; no commentary, no keys."
-        content = _call_ollama(stricter, s, temperature=0.3)
-        items = _parse_json_array(content)
+    try:
+        r = requests.post(f"{s.ollama_host}/api/generate", json=payload,
+                          timeout=getattr(s, "request_timeout_s", 60))
+        r.raise_for_status()
+        text = r.json().get("response", "") or ""
+    except Exception:
+        # if the call itself fails, return fallback
+        return _extractive_fallback(title, comment, max_words=getattr(s, "max_words", 12))
 
-    # Clean + sanitize + dedupe + cap
-    cleaned, seen = [], set()
-    for x in items:
-        h = clean_headline(x, s.max_words)
-        h = sanitize_headline(h)  # drop unsafe headlines entirely
-        if not h:
-            continue
-        k = h.lower()
-        if k in seen:
-            continue
-        seen.add(k)
-        cleaned.append(h)
-        if len(cleaned) >= n:
-            break
+    # Clean model output
+    text = _clean_text_keep_apostrophes(text)
 
-    # Fallback if model failed or produced nonsense
-    if not cleaned:
-        return simple_fallback_headlines(entries, n=n, max_words=s.max_words)
-    return cleaned
+    # Take the first non-empty line, model sometimes includes stray lines
+    first_line = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")
+
+    # Final guards: strip surrounding quotes/brackets + validate
+    first_line = first_line.strip().strip("'").strip('"').strip("[](){}")
+    if not looks_like_headline(first_line, max_words=getattr(s, "max_words", 12)):
+        return _extractive_fallback(title, comment, max_words=getattr(s, "max_words", 12))
+
+    # Capitalize first letter (light touch)
+    return first_line[0].upper() + first_line[1:]

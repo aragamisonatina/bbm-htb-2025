@@ -1,121 +1,67 @@
 # app/main.py
-"""
-Entry point: roll fixed windows, summarize mood, call LLM once per window,
-score + dedupe, print up to K distinct headlines.
-"""
-
+import json
 import logging
-import argparse
 import nltk
+from datetime import datetime, timezone
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 from config import Settings
-from stream import event_generator, collect_window
-from llm import generate_batch_headlines
-from scoring import (
-    term_maps,
-    score_headline_blend,
-    cluster_and_merge,
-    fuse_phrasal_near_dupes,
-    simple_fallback_headlines,
-)
+from stream import event_generator
+from llm import generate_headline_for_edit
 
 log = logging.getLogger(__name__)
 
-
-def _window_mood(batch) -> str:
-    """Compute window mood via VADER compound average."""
-    sent = SentimentIntensityAnalyzer()
-    scores = [sent.polarity_scores(e.get("comment") or e.get("title"))["compound"] for e in batch]
-    avg = (sum(scores) / max(1, len(scores)))
-    return "positive" if avg > 0.2 else "negative" if avg < -0.2 else "neutral"
-
-
-def _entries_from_batch(batch):
-    """Transform raw stream events to the minimal payload the LLM expects."""
-    return [{"title": e.get("title", ""), "comment": e.get("comment", ""), "delta": e.get("delta", 0)} for e in batch]
-
-
-def _print_headlines(items):
-    """Pretty printer for the final selection."""
-    if not items:
-        print("   (no distinct topics this window)")
-        return
-    print("📰 Headlines:")
-    for rep, total, _members in items:
-        print(f" → ({rep}, {total})")
-
+def _sentiment_label(compound: float) -> str:
+    """Map VADER compound score to a coarse label."""
+    return "positive" if compound > 0.2 else "negative" if compound < -0.2 else "neutral"
 
 def run(settings: Settings):
-    """Run rolling windows; generate up to K distinct headlines per window."""
+    """Continuously read the live stream and print one JSON object per qualifying edit."""
+    # Sentiment for the *generated headline*
     nltk.download("vader_lexicon", quiet=True)
+    vader = SentimentIntensityAnalyzer()
+
     gen = event_generator(settings)
-    print(f"🔁 Rolling windows of {settings.batch_seconds}s. Ctrl+C to stop.")
+    print("🔴 Live stream started. Press Ctrl+C to stop.")
 
-    while True:
-        batch = collect_window(gen, settings.batch_seconds)
-        print(f"\n⏱️  Batch window: {settings.batch_seconds}s  – collected {len(batch)} edits")
-        if not batch:
-            print("   (no events this window)")
-            continue
+    for ev in gen:
+        # ev is guaranteed filtered + normalized by stream.py
+        title   = ev.get("title", "")
+        comment = ev.get("comment", "")
+        editor  = ev.get("user", "")
+        delta   = int(ev.get("delta", 0))
+        is_edit = bool(ev.get("is_edit", False))
+        is_bot  = bool(ev.get("is_bot", False))
+        ts      = int(ev.get("timestamp", 0))
 
-        mood = _window_mood(batch)
-        print(f"   mood: {mood.upper()}")
+        # Headline (robust call with fallback already handled inside)
+        headline = generate_headline_for_edit(title, comment, settings)
 
-        # If too small/noisy, avoid LLM and fall back deterministically.
-        if len(batch) < getattr(settings, "min_edits_for_llm", 12):
-            print("   (too few edits for LLM — using extractive fallback)")
-            entries = _entries_from_batch(batch)
-            fallbacks = simple_fallback_headlines(entries, n=settings.top_headlines, max_words=settings.max_words)
-            # score + package for printing
-            tbytes, tcounts = term_maps(batch)
-            scored = [(h, score_headline_blend(h, tbytes, tcounts)) for h in fallbacks]
-            clusters = cluster_and_merge(scored, settings.jaccard_threshold)
-            clusters = fuse_phrasal_near_dupes(clusters, getattr(settings, "phrasal_fuse_threshold", 0.88))
-            _print_headlines(clusters[:settings.top_headlines])
-            continue
+        # Sentiment on the *headline*
+        comp = vader.polarity_scores(headline)["compound"]
+        sentiment = {
+            "label": _sentiment_label(comp),
+            "compound": round(comp, 3)
+        }
 
-        # Ask the model for more than we need; we'll prune to distinct topics.
-        entries = _entries_from_batch(batch)
-        want = settings.top_headlines * 2
-        try:
-            candidates = generate_batch_headlines(entries, mood, settings, want)
-        except Exception as e:
-            print(f"   🚫 Llama error: {e}")
-            # fallback path ensures we still show something
-            fallbacks = simple_fallback_headlines(entries, n=settings.top_headlines, max_words=settings.max_words)
-            tbytes, tcounts = term_maps(batch)
-            scored = [(h, score_headline_blend(h, tbytes, tcounts)) for h in fallbacks]
-            clusters = cluster_and_merge(scored, settings.jaccard_threshold)
-            clusters = fuse_phrasal_near_dupes(clusters, getattr(settings, "phrasal_fuse_threshold", 0.88))
-            _print_headlines(clusters[:settings.top_headlines])
-            continue
+        # Emit one compact JSON line (UTF-8, no ASCII escaping)
+        record = {
+            "headline": headline,                  # Headline Generated
+            "title": title,                        # Wikipedia Title (normalized)
+            "editor": editor,                      # Editor (username/IP)
+            "byte_diff": delta,                    # +/- bytes for this edit
+            "comment": comment or "No comment",    # Edit summary (cleaned)
+            "sentiment": sentiment,                # VADER result on the headline
+            # "is_edit": is_edit,                    # Must be true for qualifying events
+            # "is_bot": is_bot,                      # Whether editor is flagged bot
+            # "wiki": ev.get("wiki", "enwiki"),
+            # "namespace": ev.get("namespace", 0),
+            # "timestamp": ts,
+            "iso_time": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+        }
 
-        # Score (bytes+freq), cluster by tokens, fuse phrasing near-dupes, cap to K.
-        tbytes, tcounts = term_maps(batch)
-        scored = [(h, score_headline_blend(h, tbytes, tcounts, blend=0.80)) for h in candidates]
-        clusters = cluster_and_merge(scored, settings.jaccard_threshold)
-        clusters = fuse_phrasal_near_dupes(clusters, getattr(settings, "phrasal_fuse_threshold", 0.88))
-        _print_headlines(clusters[:settings.top_headlines])
-
+        print(json.dumps(record, ensure_ascii=False))
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    p = argparse.ArgumentParser()
-    p.add_argument("--seconds", type=int, default=Settings().batch_seconds, help="Window length in seconds")
-    p.add_argument("--headlines", type=int, default=Settings().top_headlines, help="Max distinct headlines to print")
-    p.add_argument("--max-words", type=int, default=Settings().max_words, help="Headline hard word cap")
-    p.add_argument("--jaccard", type=float, default=Settings().jaccard_threshold, help="Token Jaccard threshold")
-    p.add_argument("--phrasal", type=float, default=Settings().phrasal_fuse_threshold, help="Phrasal fuse threshold")
-    p.add_argument("--min-llm", type=int, default=Settings().min_edits_for_llm, help="Min edits before using LLM")
-    args = p.parse_args()
-
-    s = Settings(
-        batch_seconds=args.seconds,
-        top_headlines=args.headlines,
-        max_words=args.max_words,
-        jaccard_threshold=args.jaccard,
-        phrasal_fuse_threshold=args.phrasal,
-        min_edits_for_llm=args.min_llm,
-    )
-    run(s)
+    run(Settings())
