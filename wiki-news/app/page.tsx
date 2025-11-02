@@ -563,7 +563,7 @@ const Header = React.memo(
               <span className="h1-large-letter">W</span><span className="kerning-fix">ATCH</span>
             </h1>
             <p className="subtitle">
-              real-time climate of wikipedia
+              the real-time climate of wikipedia
             </p>
           </div>
           <div className="status-bar">
