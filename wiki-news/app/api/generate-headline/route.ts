@@ -13,10 +13,10 @@ export async function POST(request: Request) {
     Do not use quotes.
 
     - Article Title: ${title}
-    - User: ${user || 'Anonymous'}
     - Edit Comment: ${comment || 'No comment'}
 
-    Headline:
+    Your response MUST be the headline text and nothing else.
+    Do not include "Here's a headline:" or any other explanatory text.
     `;
 
     // 2. Call Ollama
