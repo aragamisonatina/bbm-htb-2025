@@ -4,7 +4,7 @@ import requests as rq
 from datetime import datetime, timedelta
 from datetime import date
 headers = {
-    "User-Agent": "GitLab CI automated test (/generated-data-platform/aqs/analytics-api) compare-page-metrics.py",
+    "User-Agent": "Big Burgh Moment (s2630617@ed.ac.uk)",
 }
 
 ### AI generated
@@ -130,4 +130,5 @@ else:
 totalviews_df = sum_top_articles(date_list)
 
 # Plot edits for the top 5 articles
+
 top_plot(date_list)
