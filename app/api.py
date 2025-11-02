@@ -45,9 +45,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse, StreamingResponse
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
-from config import Settings
-from stream import event_generator
-from llm import generate_headline_for_edit
+from .config import Settings
+from .stream import event_generator
+from .llm import generate_headline_for_edit
 
 log = logging.getLogger("api")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
