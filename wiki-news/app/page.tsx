@@ -43,7 +43,7 @@ function getBubbleStyle(data: WikiEditData, changeSize: number) {
 
   if (data.bot) {
     colorClass = "bot";
-  } else if (data.user && !data.user.includes(":")) {
+  } else if (data.user) {
     if (changeSize > 500) colorClass = "large-positive";
     else if (changeSize > 0) colorClass = "positive";
     else if (changeSize < -500) colorClass = "large-negative";
@@ -530,7 +530,7 @@ const Header = React.memo(
       <div className="main-header-banner-wrapper">
         <div className="main-header-banner">
           <div>
-            <h1>WIKI-NEWS</h1>
+            <h1>WIKI-WATCH</h1>
             <p className="subtitle">
               real-time wikipedia article edits visualization
             </p>

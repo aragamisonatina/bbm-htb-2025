@@ -6,7 +6,6 @@ export async function POST(request: Request) {
   try {
     const { title, user, comment } = await request.json();
 
-    // 1. Create a good prompt for the LLM
     const prompt = `
     You are a news editor. Based on the following real-time Wikipedia edit, 
     write one compelling, short news headline (under 12 words).
@@ -19,16 +18,14 @@ export async function POST(request: Request) {
     Do not include "Here's a headline:" or any other explanatory text.
     `;
 
-    // 2. Call Ollama
     const response = await ollama.chat({
-      model: 'llama3.2:1b', // Make sure you have this model
+      model: 'llama3.2:1b',
       messages: [{ role: 'user', content: prompt }],
       stream: false,
     });
 
     const headline = response.message.content.trim().replace(/"/g, '');
 
-    // 3. Send the headline back to the React app
     return NextResponse.json({ headline: headline });
 
   } catch (error) {

@@ -162,7 +162,7 @@ h1::first-letter {
   position: sticky;
   top: 20px; /* Stick 20px from the container's top */
   
-  max-height: calc(100vh - 175px); 
+  max-height: calc(100vh - 200px); 
   
   overflow-y: auto;
 }
