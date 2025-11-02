@@ -11,7 +11,7 @@ import type {
   ConnectionStatus
 } from "@/types/types";
 
-// --- Configuration ---
+// configuration constants
 const BUBBLE_LIFETIME = 10000;
 const FADE_DURATION = 2000;
 const MAX_BUBBLES = 50;
@@ -21,8 +21,7 @@ const BUBBLE_DELAY = 1500;
 const MAX_DEGREES_OF_SEPARATION = 4;
 
 
-// --- Utility Functions ---
-
+// utility functions
 const sizeMap = {
   large: 240,
   medium: 180,
@@ -227,8 +226,6 @@ async function getDegreesFromEdinburgh(articleTitle: string): Promise<number> {
   }
 }
 
-// --- 1. Custom Hook: useTimeAgo ---
-
 /**
  * Provides a `Date` object that updates every `interval` milliseconds
  * to force components using `getTimeAgo` to re-render.
@@ -242,7 +239,6 @@ function useTimeAgo(interval = 10000) {
   return now;
 }
 
-// --- 2. Custom Hook: useTooltip ---
 
 /**
  * Manages the state and handlers for the tooltip.
@@ -288,7 +284,6 @@ function useTooltip() {
   };
 }
 
-// --- 3. Custom Hook: useWikipediaEdits ---
 
 /**
  * Manages EventSource connection, data processing queue,
@@ -506,8 +501,7 @@ function useWikipediaEdits(
   return { status, stats, headlines, bubbles };
 }
 
-// --- 4. Component: Tooltip ---
-
+// tooltip component
 const Tooltip = React.memo(
   ({ visible, x, y, content }: TooltipState) => {
     if (!visible) return null;
@@ -522,8 +516,8 @@ const Tooltip = React.memo(
 );
 Tooltip.displayName = "Tooltip";
 
-// --- 5. Component: Header ---
 
+// header component
 interface HeaderProps {
   status: { type: ConnectionStatus; text: string };
   edinburghMode: boolean;
@@ -582,8 +576,7 @@ const Header = React.memo(
 );
 Header.displayName = "Header";
 
-// --- 6. Component: Leaderboard & LeaderboardItem ---
-
+// leaderboard component
 const LeaderboardItem = React.memo(
   ({ headline, rank, now }: {
     headline: HeadlineState;
@@ -659,8 +652,7 @@ const Leaderboard = React.memo(
 );
 Leaderboard.displayName = "Leaderboard";
 
-// --- 7. Component: Visualization & Bubble ---
-
+// bubble/visualisation window components
 interface BubbleProps {
   bubble: BubbleState;
   onClick: (bubble: BubbleState) => void;
@@ -719,8 +711,8 @@ const Visualization = React.memo(
 );
 Visualization.displayName = "Visualization";
 
-// --- 8. Component: Stats ---
 
+// stats component
 interface StatsProps {
   stats: StatsState;
   bubbleCount: number;
@@ -755,8 +747,7 @@ const Stats = React.memo(
 );
 Stats.displayName = "Stats";
 
-// --- 9. Effect: Edinburgh Mode Body Class ---
-
+// use edinburgh mode body class when toggled 
 function useEdinburghBodyClass(edinburghMode: boolean) {
   useEffect(() => {
     const bodyClass = "edinburgh-mode";
@@ -771,13 +762,12 @@ function useEdinburghBodyClass(edinburghMode: boolean) {
   }, [edinburghMode]);
 }
 
-// --- 10. The Main App Component ---
-
+// main app components
 function App() {
   const [edinburghMode, setEdinburghMode] = useState(false);
   const visContainerRef = useRef<HTMLDivElement>(null);
 
-  // --- Hooks ---
+  // hooks
   const { status, stats, headlines, bubbles } = useWikipediaEdits(
     edinburghMode,
     visContainerRef
@@ -786,8 +776,7 @@ function App() {
   const { tooltip, showTooltip, hideTooltip, mouseMoveProps } = useTooltip();
   useEdinburghBodyClass(edinburghMode);
 
-  // --- Event Handlers ---
-
+  // event handlers
   const handleBubbleHoverStart = useCallback(
     (e: React.MouseEvent, bubble: BubbleState) => {
       const data = bubble.rawData;
@@ -834,8 +823,7 @@ function App() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // --- Render ---
-
+  // render output
   return (
     <>
       <Tooltip
