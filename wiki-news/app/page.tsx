@@ -9,7 +9,7 @@ import type {
   StatsState,
   TooltipState,
   ConnectionStatus,
-  SentimentData, // Make sure SentimentData is exported from types.ts
+  SentimentData, 
 } from "@/types/types";
 
 // configuration constants
@@ -41,7 +41,6 @@ function getBubbleAttributes(
   let size: BubbleState["size"];
   let colorClass: string;
 
-  // Size logic remains the same
   if (absSize >= 2000) size = "large";
   else if (absSize >= 500) size = "medium";
   else if (absSize >= 100) size = "small";
@@ -235,8 +234,7 @@ async function getDegreesFromEdinburgh(articleTitle: string): Promise<number> {
 }
 
 /**
- * Provides a `Date` object that updates every `interval` milliseconds
- * to force components using `getTimeAgo` to re-render.
+ * provides a 'Date' object that updates to force components using 'getTimeAgo' to re-render.
  */
 function useTimeAgo(interval = 10000) {
   const [now, setNow] = useState(() => new Date());
@@ -249,7 +247,7 @@ function useTimeAgo(interval = 10000) {
 
 
 /**
- * Manages the state and handlers for the tooltip.
+ * manages the state and handlers for the tooltip.
  */
 function useTooltip() {
   const [tooltip, setTooltip] = useState<TooltipState>({
@@ -294,7 +292,7 @@ function useTooltip() {
 
 
 /**
- * Manages EventSource connection, data processing queue,
+ * manages EventSource connection, data processing queue,
  */
 function useWikipediaEdits(
   edinburghMode: boolean,
@@ -304,7 +302,6 @@ function useWikipediaEdits(
     { type: "connecting", text: "Connecting to Wikipedia EventStreams..." }
   );
   
-  // --- MODIFIED: Initial state for stats ---
   const [stats, setStats] = useState<StatsState>({
     totalEdits: 0,
     queueCount: 0,
@@ -314,8 +311,6 @@ function useWikipediaEdits(
     neutralCount: 0,
     negativeCount: 0,
   });
-  // --- END: Initial state for stats ---
-
   const [headlines, setHeadlines] = useState<HeadlineState[]>([]);
   const [bubbles, setBubbles] = useState<BubbleState[]>([]);
 
@@ -434,7 +429,6 @@ function useWikipediaEdits(
       addBubble(data, changeSize, headlineToUse, sentiment);
       addHeadline(data, changeSize, headlineToUse, sentiment);
 
-      // --- MODIFIED: Update stats with sentiment counts ---
       setStats((prev) => {
         const newStats = {
           ...prev,
@@ -452,7 +446,6 @@ function useWikipediaEdits(
         
         return newStats;
       });
-      // --- END: Update stats ---
     },
     [addBubble, addHeadline, edinburghMode]
   );
@@ -565,7 +558,10 @@ const Header = React.memo(
       <div className="main-header-banner-wrapper">
         <div className="main-header-banner">
           <div>
-            <h1>WIKI-WATCH</h1>
+            <h1>
+              <span className="h1-large-letter">W</span>IKI
+              <span className="h1-large-letter">W</span><span className="kerning-fix">ATCH</span>
+            </h1>
             <p className="subtitle">
               real-time climate of wikipedia
             </p>
@@ -839,7 +835,6 @@ function App() {
         }
       }
 
-      // --- NEW: Add Sentiment to Tooltip ---
       let sentimentInfo = "";
       if (bubble.sentiment) {
         const score = (bubble.sentiment.compound * 100).toFixed(0);

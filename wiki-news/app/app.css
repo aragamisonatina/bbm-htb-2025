@@ -79,10 +79,17 @@ h1 {
   font-family: "Linux Libertine", serif;
 }
 
-h1::first-letter {
-  font-size: 1.3em;
+.h1-large-letter {
+  font-size: 1.3em; /* makes it 30% bigger */
   line-height: 1;
 }
+
+.kerning-fix {
+  position: relative;
+
+  left: -0.15em;
+}
+
 
 .subtitle {
   font-size: 18px;
@@ -154,11 +161,10 @@ h1::first-letter {
   padding: 30px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   position: sticky;
-  top: 20px; /* Stick 20px from the container's top */
+  top: 20px; 
   
   max-height: calc(100vh - 200px); 
   
-  /* --- MODIFIED: Added flex for scrollbar fix --- */
   display: flex;
   flex-direction: column;
 }
@@ -436,16 +442,16 @@ h1::first-letter {
   justify-content: space-between; 
   
   align-items: center;
-  flex-wrap: wrap; /* This ensures it stacks nicely on mobile */
+  flex-wrap: wrap; 
   gap: 20px; 
 }
 
 .stats-group-left,
 .stats-group-right {
   display: flex;
-  flex-wrap: wrap; /* Allows items *inside* the groups to wrap */
+  flex-wrap: wrap; 
   align-items: center;
-  gap: 20px; /* This is the same gap as the parent */
+  gap: 20px; 
 }
 
 .stats strong {
@@ -458,22 +464,20 @@ h1::first-letter {
   border-radius: 12px;
 }
 
-/* --- NEW: Styles for Sentiment Stat Boxes --- */
 .stat-box.sentiment-positive {
-  background-color: #5a7eb8; /* Blue */
+  background-color: #5a7eb8; 
   color: #fff;
 }
 
 .stat-box.sentiment-negative {
-  background-color: #c94343; /* Red */
+  background-color: #c94343; 
   color: #fff;
 }
 
 .stat-box.sentiment-neutral {
-  background-color: #d4a853; /* Yellow/Gold */
+  background-color: #d4a853; 
   color: #fff;
 }
-/* --- END: New Stat Box Styles --- */
 
 .tooltip {
   position: absolute;
