@@ -3,18 +3,16 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import "./app.css";
 
-// --- Configuration (from your <script>) ---
+// --- Configuration ---
 const BUBBLE_LIFETIME = 10000;
 const FADE_DURATION = 2000;
 const MAX_BUBBLES = 50;
 const LEADERBOARD_SIZE = 10;
 const EVENTSTREAM_URL = "https://stream.wikimedia.org/v2/stream/recentchange";
-const BUBBLE_DELAY = 1500; // Delay between processing queue items
-const MAX_DEGREES_OF_SEPARATION = 4; // Maximum degrees of separation from Edinburgh
+const BUBBLE_DELAY = 1500; // delay between processing queue items
+const MAX_DEGREES_OF_SEPARATION = 4; // maximum degrees of separation 
 
-// --- Type Definitions (for TypeScript) ---
-
-// The raw data from Wikipedia's stream
+// --- Type Definitions ---
 interface WikiEditData {
   id: number;
   wiki: string;
@@ -71,10 +69,10 @@ interface StatsState {
 // --- Utility Functions ---
 
 const sizeMap = {
-  large: 240, // Increased from 200
-  medium: 180, // Increased from 150
-  small: 120, // Increased from 100
-  tiny: 90, // Increased from 80
+  large: 240, 
+  medium: 180, 
+  small: 120, 
+  tiny: 90, 
 };
 
 // Gets size and color based on edit data
@@ -83,12 +81,10 @@ function getBubbleStyle(data: WikiEditData, changeSize: number) {
   let size: BubbleState["size"];
   let colorClass: string;
 
-  // Proportional sizing based on bytes changed
-  // Using logarithmic scale for better visual distribution
-  if (absSize >= 2000) size = "large"; // 2000+ bytes = large
-  else if (absSize >= 500) size = "medium"; // 500-1999 bytes = medium
-  else if (absSize >= 100) size = "small"; // 100-499 bytes = small
-  else size = "tiny"; // 0-99 bytes = tiny
+  if (absSize >= 2000) size = "large"; 
+  else if (absSize >= 500) size = "medium"; 
+  else if (absSize >= 100) size = "small"; 
+  else size = "tiny"; 
 
   if (data.bot) {
     colorClass = "bot";
@@ -189,15 +185,23 @@ function escapeHtml(text: string) {
     .replace(/'/g, "&#039;");
 }
 
+// NEW: Add this function to decode text from the AI
+function decodeHtml(html: string): string {
+  if (typeof document === "undefined") return html; // Handle server-side
+  const txt = document.createElement("textarea");
+  txt.innerHTML = html;
+  return txt.value;
+}
+
 // Truncates text based on bubble size to prevent overflow
 function truncateForBubble(text: string, size: BubbleState["size"]): string {
   if (!text) return "";
 
   const maxLengths = {
-    large: 140,  // ~140 characters for large bubbles (increased from 100)
-    medium: 90,  // ~90 characters for medium bubbles (increased from 65)
-    small: 55,   // ~55 characters for small bubbles (increased from 40)
-    tiny: 30,    // ~30 characters for tiny bubbles (increased from 20)
+    large: 140, 
+    medium: 90, 
+    small: 55, 
+    tiny: 30, 
   };
 
   const maxLength = maxLengths[size];
@@ -218,83 +222,103 @@ const edinburghCache = new Map<string, number>();
 
 // Check degrees of separation from Edinburgh using Wikipedia API
 async function getDegreesFromEdinburgh(articleTitle: string): Promise<number> {
-  // Check cache first
-  if (edinburghCache.has(articleTitle)) {
-    return edinburghCache.get(articleTitle)!;
+  const normalize = (t: string) => t.trim().toLowerCase();
+  const startKey = normalize(articleTitle);
+
+  // Respect the global limit and keep it consistent with the rest of the app
+  const maxDepth = MAX_DEGREES_OF_SEPARATION;
+
+  // Check cache first (use normalized keys)
+  if (edinburghCache.has(startKey)) {
+    return edinburghCache.get(startKey)!;
   }
 
   try {
-    // Use Wikipedia's API to get links from the article
-    const response = await fetch(
-      `https://en.wikipedia.org/w/api.php?` +
-        `action=query&titles=${encodeURIComponent(articleTitle)}&` +
-        `prop=links&pllimit=500&format=json&origin=*`
-    );
+    // BFS queue: { title, depth } where depth = distance from start article
+    const queue: { title: string; depth: number }[] = [
+      { title: articleTitle, depth: 0 },
+    ];
+    const visited = new Set<string>([startKey]);
 
-    const data = await response.json();
-    const pages = data.query?.pages;
+    while (queue.length > 0) {
+      const { title, depth } = queue.shift()!;
+      const titleKey = normalize(title);
 
-    if (!pages) {
-      edinburghCache.set(articleTitle, 999); // Not found
-      return 999;
+      // If we've already exceeded the allowed depth, stop expanding this node.
+      if (depth >= maxDepth) continue;
+
+      // Fetch links for this page
+      const resp = await fetch(
+        `https://en.wikipedia.org/w/api.php?` +
+          `action=query&titles=${encodeURIComponent(title)}&` +
+          `prop=links&pllimit=500&format=json&origin=*`
+      );
+      const json = await resp.json();
+      const pages = json.query?.pages;
+      if (!pages) {
+        // If this page can't be found, cache it as not connected.
+        edinburghCache.set(titleKey, 999);
+        continue;
+      }
+
+      const page = Object.values(pages)[0] as any;
+      const links: any[] = page.links || [];
+
+      // Normalize and filter link titles (skip namespaced pages like "File:", "Category:", etc.)
+      const linkTitles = links
+        .map((l) => (l && l.title ? String(l.title) : ""))
+        .filter((t) => t && !t.includes(":"));
+
+      // Check direct link to Edinburgh (degree = depth + 1)
+      const foundDirect = linkTitles.some((lt) =>
+        lt.toLowerCase().includes("edinburgh")
+      );
+      if (foundDirect) {
+        const degrees = depth + 1;
+        if (degrees <= maxDepth) {
+          edinburghCache.set(startKey, degrees);
+          // Cache any direct-linking pages as degree=1
+          for (const lt of linkTitles) {
+            if (lt.toLowerCase().includes("edinburgh")) {
+              edinburghCache.set(normalize(lt), 1);
+            }
+          }
+          return degrees;
+        } else {
+          // If the direct degree would exceed the allowed maximum, treat as not connected
+          edinburghCache.set(startKey, 999);
+          return 999;
+        }
+      }
+
+      // Shortcut: if any linked page already has a cached degree, combine
+      for (const lt of linkTitles) {
+        const lk = normalize(lt);
+        const cached = edinburghCache.get(lk);
+        if (typeof cached === "number" && cached !== 999) {
+          // start -> lt is (depth + 1), lt -> Edinburgh is cached, so total = depth + 1 + cached
+          const totalDegrees = depth + 1 + cached;
+          if (totalDegrees <= maxDepth) {
+            edinburghCache.set(startKey, totalDegrees);
+            return totalDegrees;
+          }
+        }
+      }
+
+      // Enqueue neighbors for further exploration (but only if next depth < maxDepth)
+      if (depth + 1 < maxDepth) {
+        for (const lt of linkTitles) {
+          const lk = normalize(lt);
+          if (!visited.has(lk)) {
+            visited.add(lk);
+            queue.push({ title: lt, depth: depth + 1 });
+          }
+        }
+      }
     }
 
-    const page = Object.values(pages)[0] as any;
-    const links = page.links || [];
-
-    // Check if Edinburgh is directly linked (degree 1)
-    const hasEdinburgh = links.some(
-      (link: any) =>
-        link.title === "Edinburgh" || link.title.includes("Edinburgh")
-    );
-
-    if (hasEdinburgh) {
-      edinburghCache.set(articleTitle, 1);
-      return 1;
-    }
-
-    // Check for Scotland (likely degree 2 from Edinburgh)
-    const hasScotland = links.some(
-      (link: any) =>
-        link.title === "Scotland" ||
-        link.title === "Scottish" ||
-        link.title.includes("Scotland")
-    );
-
-    if (hasScotland) {
-      edinburghCache.set(articleTitle, 2);
-      return 2;
-    }
-
-    // Check for UK/Britain (likely degree 3)
-    const hasUK = links.some(
-      (link: any) =>
-        link.title === "United Kingdom" ||
-        link.title === "Great Britain" ||
-        link.title === "British" ||
-        link.title.includes("United Kingdom")
-    );
-
-    if (hasUK) {
-      edinburghCache.set(articleTitle, 3);
-      return 3;
-    }
-
-    // Check for Europe (likely degree 4)
-    const hasEurope = links.some(
-      (link: any) =>
-        link.title === "Europe" ||
-        link.title === "European" ||
-        link.title.includes("Europe")
-    );
-
-    if (hasEurope) {
-      edinburghCache.set(articleTitle, 4);
-      return 4;
-    }
-
-    // Too far or not related
-    edinburghCache.set(articleTitle, 999);
+    // Not found within maxDepth
+    edinburghCache.set(startKey, 999);
     return 999;
   } catch (error) {
     console.error("Error checking Edinburgh connection:", error);
@@ -447,7 +471,7 @@ function App() {
 
         if (response.ok) {
           const { headline } = await response.json();
-          headlineToUse = headline; // Use the AI-generated headline
+          headlineToUse = decodeHtml(headline); // Use the DECODED headline
         } else {
           console.error("API Error, using fallback title");
         }
@@ -648,145 +672,176 @@ function App() {
         />
       )}
 
-      {/* Main Container */}
-      <div className="container" onMouseMove={handleMouseMove}>
-        {/* Leaderboard Sidebar */}
-        <div className="leaderboard" id="leaderboard">
-          <h2>📊 Live Headlines</h2>
-          <div id="leaderboard-items">
-            {headlines.length === 0 && (
+      {/* NEW: Main wrapper for tooltip events */}
+      <main onMouseMove={handleMouseMove}>
+        {/* --- NEW: Full-width Header Wrapper --- */}
+        <div className="main-header-banner-wrapper">
+          <div className="main-header-banner">
+            <div>
+              {" "}
+              {/* Left Side */}
+              <h1>WIKI-NEWS</h1>
+              <p className="subtitle">
+                real-time wikipedia article edits visualization
+              </p>
+            </div>
+
+            <div className="status-bar">
+              {" "}
+              {/* Right Side */}
               <div
+                className={`status-indicator ${status.type}`}
+                id="status-indicator"
+              ></div>
+              <span id="status-text">{status.text}</span>
+              {/* Edinburgh Mode Toggle */}
+              <label
                 style={{
-                  padding: "20px",
-                  textAlign: "center",
-                  color: "#666",
-                  fontSize: "14px",
+                  marginLeft: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  cursor: "pointer",
+                  userSelect: "none",
+                  fontWeight: "500",
                 }}
               >
-                Connecting to Wikipedia...
-              </div>
-            )}
-            {headlines.map((headline, index) => {
-              const timeAgo = getTimeAgo(headline.timestamp, now);
-              const changeText =
-                headline.changeSize > 0
-                  ? `+${headline.changeSize}`
-                  : headline.changeSize;
-              const changeColor =
-                headline.changeSize > 0
-                  ? "#5a7eb8"
-                  : headline.changeSize < 0
-                  ? "#c94343"
-                  : "#d4a853";
+                <input
+                  type="checkbox"
+                  checked={edinburghMode}
+                  onChange={(e) => setEdinburghMode(e.target.checked)}
+                  style={{ cursor: "pointer", width: "18px", height: "18px" }}
+                />
+                <span>🏴󠁧󠁢󠁳󠁣󠁴󠁿 Edinburgh Mode</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        {/* --- END: Header --- */}
 
-              return (
-                <div
-                  className="leaderboard-item"
-                  data-headline-id={headline.id}
-                  data-rank={index + 1}
-                  key={headline.id}
-                >
-                  <div className="leaderboard-rank">#{index + 1}</div>
-                  <div className="leaderboard-headline">
-                    {escapeHtml(headline.title)}
+        {/* Main Container (now just for content) */}
+        <div className="container">
+          {/* --- NEW: Content Row --- */}
+          <div className="content-row">
+            {/* Leaderboard Sidebar */}
+            <div className="leaderboard" id="leaderboard">
+              <h2>📊 Live Headlines</h2>
+              <div id="leaderboard-items">
+                {headlines.length === 0 && (
+                  <div
+                    style={{
+                      padding: "20px",
+                      textAlign: "center",
+                      color: "#666",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Connecting to Wikipedia...
                   </div>
-                  <div className="leaderboard-meta">
-                    <span
-                      className="leaderboard-badge edits"
-                      style={{
-                        backgroundColor: `${changeColor}20`,
-                        color: changeColor,
-                      }}
+                )}
+                {headlines.map((headline, index) => {
+                  const timeAgo = getTimeAgo(headline.timestamp, now);
+                  const changeText =
+                    headline.changeSize > 0
+                      ? `+${headline.changeSize}`
+                      : headline.changeSize;
+                  const changeColor =
+                    headline.changeSize > 0
+                      ? "#5a7eb8"
+                      : headline.changeSize < 0
+                      ? "#c94343"
+                      : "#d4a853";
+
+                  return (
+                    <div
+                      className="leaderboard-item"
+                      data-headline-id={headline.id}
+                      data-rank={index + 1}
+                      key={headline.id}
                     >
-                      {changeText} bytes
-                    </span>
-                    <span className="leaderboard-badge time">🕐 {timeAgo}</span>
+                      <div className="leaderboard-rank">#{index + 1}</div>
+                      <div className="leaderboard-headline">
+                        {/* UPDATED: Removed escapeHtml, React handles it */}
+                        {headline.title}
+                      </div>
+                      <div className="leaderboard-meta">
+                        <span
+                          className="leaderboard-badge edits"
+                          style={{
+                            backgroundColor: `${changeColor}20`,
+                            color: changeColor,
+                          }}
+                        >
+                          {changeText} bytes
+                        </span>
+                        <span className="leaderboard-badge time">
+                          🕐 {timeAgo}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="main-content">
+              {/* The banner is GONE from here */}
+
+              <div className="visualization-container" ref={visContainerRef}>
+                {bubbles.map((bubble) => (
+                  <div
+                    key={bubble.id}
+                    className={`bubble ${bubble.size} ${bubble.colorClass} ${
+                      bubble.state === "fading" ? "fading" : ""
+                    }`}
+                    style={{ left: bubble.x, top: bubble.y }}
+                    onMouseEnter={(e) => handleShowTooltip(e, bubble)}
+                    onMouseLeave={handleHideTooltip}
+                  >
+                    {/* Display the AI-generated headline in the bubble, truncated for size */}
+                    {truncateForBubble(bubble.title, bubble.size)}
                   </div>
+                ))}
+
+                {/* --- STATS DIV IS NO LONGER HERE --- */}
+                
+              </div>
+              
+              {/* --- MOVED: Stats are now AFTER the container --- */}
+              <div className="stats">
+                <div className="stat-box">
+                  <strong id="edit-count">{stats.totalEdits}</strong> edits
+                  received
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="main-content">
-          <h1>WIKI-NEWS</h1>
-          <p className="subtitle">
-            real-time wikipedia article edits visualization
-          </p>
-
-          <div className="status-bar">
-            <div
-              className={`status-indicator ${status.type}`}
-              id="status-indicator"
-            ></div>
-            <span id="status-text">{status.text}</span>
-
-            {/* Edinburgh Mode Toggle */}
-            <label
-              style={{
-                marginLeft: "auto",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                cursor: "pointer",
-                userSelect: "none",
-                fontWeight: "500",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={edinburghMode}
-                onChange={(e) => setEdinburghMode(e.target.checked)}
-                style={{ cursor: "pointer", width: "18px", height: "18px" }}
-              />
-              <span>🏴󠁧󠁢󠁳󠁣󠁴󠁿 Edinburgh Mode</span>
-            </label>
-          </div>
-
-          <div className="visualization-container" ref={visContainerRef}>
-            {bubbles.map((bubble) => (
-              <div
-                key={bubble.id}
-                className={`bubble ${bubble.size} ${bubble.colorClass} ${
-                  bubble.state === "fading" ? "fading" : ""
-                }`}
-                style={{ left: bubble.x, top: bubble.y }}
-                onMouseEnter={(e) => handleShowTooltip(e, bubble)}
-                onMouseLeave={handleHideTooltip}
-              >
-                {/* Display the AI-generated headline in the bubble, truncated for size */}
-                {truncateForBubble(bubble.title, bubble.size)}
+                <div className="stat-box">
+                  {/* Active count is now just the length of the bubbles array */}
+                  <strong id="active-count">{bubbles.length}</strong> active
+                  bubbles
+                </div>
+                <div className="stat-box">
+                  <strong id="queue-count">{stats.queueCount}</strong> in
+                  queue
+                </div>
+                {edinburghMode && (
+                  <div
+                    className="stat-box"
+                  >
+                    <strong>{stats.filteredByEdinburgh || 0}</strong> filtered
+                    by Edinburgh
+                  </div>
+                )}
+                <div className="stat-box">
+                  Last edit: <strong id="last-edit">{stats.lastEdit}</strong>
+                </div>
               </div>
-            ))}
-          </div>
+              {/* --- END: Stats --- */}
 
-          <div className="stats">
-            <div className="stat-box">
-              <strong id="edit-count">{stats.totalEdits}</strong> edits received
-            </div>
-            <div className="stat-box">
-              {/* Active count is now just the length of the bubbles array */}
-              <strong id="active-count">{bubbles.length}</strong> active bubbles
-            </div>
-            <div className="stat-box">
-              <strong id="queue-count">{stats.queueCount}</strong> in queue
-            </div>
-            {edinburghMode && (
-              <div
-                className="stat-box"
-                style={{ backgroundColor: "rgba(139, 111, 71, 0.15)" }}
-              >
-                <strong>{stats.filteredByEdinburgh || 0}</strong> filtered by
-                Edinburgh
-              </div>
-            )}
-            <div className="stat-box">
-              Last edit: <strong id="last-edit">{stats.lastEdit}</strong>
             </div>
           </div>
+          {/* --- END: Content Row --- */}
         </div>
-      </div>
+      </main>
     </>
   );
 }

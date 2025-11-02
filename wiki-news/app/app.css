@@ -1,527 +1,585 @@
+@font-face {
+  font-family: 'Linux Libertine';
+  src: url('/LinLibertine.tff') format('tff'); /* Adjust filename and format if needed */
+  font-weight: normal;
+  font-style: normal;
+}
+
 /* All CSS from your new <style> tag */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-    font-family: 'Georgia', serif;
-    background-color: #f0f0f0;
-    padding: 20px;
-    overflow-x: hidden;
-    transition: background 0.5s ease;
+  color: black;
+  font-family: "Georgia", serif;
+  background-color: #f0f0f0;
+  /* padding: 20px; */ /* <-- REMOVED */
+  overflow-x: hidden;
+  transition: background 0.5s ease;
 }
 
 body.edinburgh-mode {
-    background-image: url('/Flag_of_Scotland.svg.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+  background-image: url("/Flag_of_Scotland.svg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  transition: none;
 }
 
 body.edinburgh-mode::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: transparent;
-    pointer-events: none;
-    z-index: 0;
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  pointer-events: none;
+  z-index: 0;
 }
 
+/* --- NEW: Full-width Header Wrapper --- */
+.main-header-banner-wrapper {
+  width: 100%;
+  padding: 20px;
+  background-color: #f0f0f0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
+}
+
+.main-header-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  width: 100%;
+  max-width: 1400px; /* Aligns with container */
+  margin: 0 auto;
+}
+
+/* --- MODIFIED: Container --- */
 .container {
-    max-width: 1400px;
-    margin: 0 auto;
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-    position: relative;
-    z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: block; /* No longer flex */
+  position: relative;
+  z-index: 1;
+  padding: 20px; /* Add padding back */
+}
+
+/* --- NEW: Content Row --- */
+.content-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
 }
 
 .main-content {
-    flex: 1;
+  flex: 1;
 }
+
+.main-header-banner .status-bar {
+  margin-bottom: 0; /* Remove old margin */
+  flex-shrink: 0; /* Prevent it from shrinking */
+  margin-top: 10px; /* Align nicely with title */
+}
+/* --- END: Header Banner --- */
 
 h1 {
-    font-size: 48px;
-    font-weight: 400;
-    letter-spacing: 2px;
-    margin-bottom: 10px;
-    font-family: 'Times New Roman', serif;
+  color: black;
+  font-size: 48px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  margin-bottom: 5px; /* Reduced margin */
+  font-family: "Linux Libertine", serif;
 }
 
-body.edinburgh-mode h1 {
-    color: #ffffff;
+h1::first-letter {
+  font-size: 1.3em; /* Makes it 25% bigger than the rest */
+  line-height: 1;
 }
 
 .subtitle {
-    font-size: 18px;
-    color: #333;
-    margin-bottom: 20px;
-    font-weight: 300;
-}
-
-body.edinburgh-mode .subtitle {
-    color: #ffffff;
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 0; /* Removed margin */
+  font-weight: 300;
 }
 
 .status-bar {
-    background-color: rgba(61, 79, 111, 0.1);
-    padding: 10px 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    font-size: 14px;
+  background-color: rgba(61, 79, 111, 0.1);
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 14px;
 }
 
 .status-bar label {
-    transition: all 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .status-bar label:hover {
-    opacity: 0.8;
+  opacity: 0.8;
 }
 
 .status-bar input[type="checkbox"] {
-    accent-color: #8b6f47;
-    transition: all 0.2s ease;
+  accent-color: #8b6f47;
+  transition: all 0.2s ease;
 }
 
 .status-bar input[type="checkbox"]:hover {
-    transform: scale(1.1);
+  transform: scale(1.1);
 }
 
 .status-indicator {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #ccc;
-    animation: blink 2s infinite;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ccc;
+  animation: blink 2s infinite;
 }
 
 .status-indicator.connected {
-    background-color: #46d113;
+  background-color: #46d113;
 }
 
 .status-indicator.disconnected {
-    background-color: #e74c3c;
-    animation: none;
+  background-color: #e74c3c;
+  animation: none;
 }
 
 @keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
 
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.5;
-    }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .leaderboard {
-    width: 350px;
-    background-color: #e8e8e8;
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    position: sticky;
-    top: 20px;
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
+  width: 350px;
+  background-color: #e8e8e8;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 20px; /* Stick 20px from the container's top */
+  
+  /* --- MODIFIED: Fixed height --- */
+  /* This accounts for header (~111px) + container padding (20px) + its own top (20px) + bottom padding (20px) */
+  max-height: calc(100vh - 175px); 
+  
+  overflow-y: auto;
 }
 
 .leaderboard h2 {
-    font-size: 28px;
-    font-weight: 500;
-    margin-bottom: 20px;
-    color: #333;
-    font-family: 'Times New Roman', serif;
+  font-size: 28px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  color: #333;
+  font-family: "Times New Roman", serif;
 }
 
 .leaderboard-item {
-    background-color: rgba(255, 255, 255, 0.5);
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-left: 4px solid transparent;
-    animation: slideInRight 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+  animation: slideInRight 0.3s ease;
 }
 
 @keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
 
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .leaderboard-item:hover {
-    background-color: rgba(255, 255, 255, 0.8);
-    transform: translateX(-5px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.8);
+  transform: translateX(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .leaderboard-item.highlighted {
-    background-color: rgba(255, 255, 255, 0.9);
-    transform: translateX(-8px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    border-left-color: #3d4f6f;
+  background-color: rgba(255, 255, 255, 0.9);
+  transform: translateX(-8px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  border-left-color: #3d4f6f;
 }
 
 .leaderboard-rank {
-    font-size: 20px;
-    font-weight: 700;
-    color: #3d4f6f;
-    margin-bottom: 5px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #3d4f6f;
+  margin-bottom: 5px;
 }
 
 .leaderboard-headline {
-    font-size: 15px;
-    font-weight: 500;
-    color: #000;
-    margin-bottom: 8px;
-    line-height: 1.4;
-    /* Prevent long words from breaking layout */
-    word-break: break-word;
+  font-size: 15px;
+  font-weight: 500;
+  color: #000;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  /* Prevent long words from breaking layout */
+  word-break: break-word;
 }
 
 .leaderboard-meta {
-    display: flex;
-    gap: 10px;
-    font-size: 12px;
-    color: #666;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #666;
+  flex-wrap: wrap;
 }
 
 .leaderboard-badge {
-    padding: 3px 8px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .leaderboard-badge.edits {
-    background-color: rgba(93, 126, 184, 0.2);
-    color: #3d4f6f;
+  background-color: rgba(93, 126, 184, 0.2);
+  color: #3d4f6f;
 }
 
 .leaderboard-badge.time {
-    background-color: rgba(212, 168, 83, 0.2);
-    color: #8b6f47;
+  background-color: rgba(212, 168, 83, 0.2);
+  color: #8b6f47;
 }
 
 .leaderboard::-webkit-scrollbar {
-    width: 8px;
+  width: 8px;
 }
 
 .leaderboard::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
 }
 
 .leaderboard::-webkit-scrollbar-thumb {
-    background: rgba(61, 79, 111, 0.5);
-    border-radius: 4px;
+  background: rgba(61, 79, 111, 0.5);
+  border-radius: 4px;
 }
 
 .leaderboard::-webkit-scrollbar-thumb:hover {
-    background: rgba(61, 79, 111, 0.7);
+  background: rgba(61, 79, 111, 0.7);
 }
 
 .visualization-container {
-    background-color: #e8e8e8;
-    border-radius: 20px;
-    padding: 40px;
-    position: relative;
-    min-height: 500px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
+  background-color: #e8e8e8;
+  border-radius: 20px;
+  padding: 40px;
+  position: relative;
+  min-height: 500px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  /* padding-bottom: 80px; */ /* <-- REMOVED */
 }
 
 .bubble {
-    position: absolute;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px;
-    font-size: 20px;
-    font-weight: 600;
-    font-family: 'Georgia', sans-serif;
-    line-height: 1.3;
-    cursor: pointer;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    animation: bubbleAppear 0.5s ease-in-out;
-    opacity: 1;
-    /* Prevent text selection */
-    user-select: none;
-    /* Text overflow handling */
-    overflow: hidden;
-    word-wrap: break-word;
-    word-break: break-word;
-    hyphens: auto;
-    /* Better text rendering */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  font-size: 20px;
+  font-weight: 600;
+  font-family: "Georgia", sans-serif;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: bubbleAppear 0.5s ease-in-out;
+  opacity: 1;
+  /* Prevent text selection */
+  user-select: none;
+  /* Text overflow handling */
+  overflow: hidden;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  /* Better text rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 @keyframes bubbleAppear {
-    0% {
-        opacity: 0;
-        transform: scale(0);
-    }
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
 
-    60% {
-        transform: scale(1.1);
-    }
+  60% {
+    transform: scale(1.1);
+  }
 
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .bubble.fading {
-    /* Use 'fading' state to trigger animation */
-    animation: bubbleFade 2s ease-out forwards;
+  /* Use 'fading' state to trigger animation */
+  animation: bubbleFade 2s ease-out forwards;
 }
 
 @keyframes bubbleFade {
-    0% {
-        opacity: 1;
-        transform: scale(1);
-    }
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
 
-    100% {
-        opacity: 0;
-        transform: scale(0.5);
-    }
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
 }
 
 .bubble:hover {
-    transform: scale(1.05);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 10;
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 10;
 }
 
 .bubble.highlighted {
-    transform: scale(1.1);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-    z-index: 11;
-    animation: pulse 1s ease-in-out infinite;
+  transform: scale(1.1);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  z-index: 11;
+  animation: pulse 1s ease-in-out infinite;
 }
 
 .bubble.dimmed {
-    opacity: 0.3;
+  opacity: 0.3;
 }
 
 @keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1.1);
+  }
 
-    0%,
-    100% {
-        transform: scale(1.1);
-    }
-
-    50% {
-        transform: scale(1.15);
-    }
+  50% {
+    transform: scale(1.15);
+  }
 }
 
 /* Size variations */
 .bubble.large {
-    width: 240px;
-    height: 240px;
-    font-size: 15px;
-    padding: 30px;
-    line-height: 1.4;
+  width: 240px;
+  height: 240px;
+  font-size: 15px;
+  padding: 30px;
+  line-height: 1.4;
 }
 
 .bubble.medium {
-    width: 180px;
-    height: 180px;
-    font-size: 13px;
-    padding: 25px;
-    line-height: 1.3;
+  width: 180px;
+  height: 180px;
+  font-size: 13px;
+  padding: 25px;
+  line-height: 1.3;
 }
 
 .bubble.small {
-    width: 120px;
-    height: 120px;
-    font-size: 11px;
-    padding: 18px;
-    line-height: 1.2;
+  width: 120px;
+  height: 120px;
+  font-size: 11px;
+  padding: 18px;
+  line-height: 1.2;
 }
 
 .bubble.tiny {
-    width: 90px;
-    height: 90px;
-    font-size: 10px;
-    padding: 14px;
-    line-height: 1.1;
+  width: 90px;
+  height: 90px;
+  font-size: 10px;
+  padding: 14px;
+  line-height: 1.1;
 }
 
 /* Color schemes based on edit size */
 .bubble.positive {
-    background-color: #5a7eb8;
-    color: #fff;
-    font-weight: 600;
+  background-color: #5a7eb8;
+  color: #fff;
+  font-weight: 600;
 }
 
 .bubble.large-positive {
-    background-color: #3d4f6f;
-    color: #fff;
-    font-weight: 600;
+  background-color: #3d4f6f;
+  color: #fff;
+  font-weight: 600;
 }
 
 .bubble.negative {
-    background-color: #e89148;
-    color: #fff;
-    font-weight: 700;
+  background-color: #e89148;
+  color: #fff;
+  font-weight: 700;
 }
 
 .bubble.large-negative {
-    background-color: #c94343;
-    color: #fff;
-    font-weight: 600;
+  background-color: #c94343;
+  color: #fff;
+  font-weight: 600;
 }
 
 .bubble.neutral {
-    background-color: #7b9ad1;
-    color: #fff;
-    font-weight: 600;
+  background-color: #7b9ad1;
+  color: #fff;
+  font-weight: 600;
 }
 
 .bubble.bot {
-    background-color: #6b4c9f;
-    color: #fff;
-    font-weight: 600;
+  background-color: #6b4c9f;
+  color: #fff;
+  font-weight: 600;
 }
 
 .bubble.anon {
-    background-color: #46d113;
-    color: #fff;
-    font-weight: 700;
+  background-color: #46d113;
+  color: #fff;
+  font-weight: 700;
 }
 
+/* --- MODIFIED: Stats --- */
 .stats {
-    margin-top: 30px;
-    font-size: 18px;
-    color: #333;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
-}
+  /* position: absolute; */ /* <-- REMOVED */
+  /* bottom: 30px; */ /* <-- REMOVED */
+  /* left: 40px; */ /* <-- REMOVED */
+  /* right: 40px; */ /* <-- REMOVED */
+  
+  margin-top: 20px; /* <-- ADDED */
 
-body.edinburgh-mode .stats {
-    color: #ffffff;
+  font-size: 18px;
+  color: #333;
+  display: flex;
+  justify-content: flex-start; /* Align left */
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px; /* Spaced out */
 }
 
 .stats strong {
-    font-weight: 600;
+  font-weight: 600;
 }
 
 .stat-box {
-    background-color: rgba(61, 79, 111, 0.1);
-    padding: 10px 20px;
-    border-radius: 12px;
+  background-color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 12px;
 }
-
-body.edinburgh-mode .stat-box {
-    background-color: rgba(255, 255, 255, 0.2);
-}
+/* --- END: Stats --- */
 
 .tooltip {
-    position: absolute;
-    background-color: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    pointer-events: none;
-    z-index: 1000;
-    /* display: none; is now handled by React state */
-    max-width: 300px;
-    line-height: 1.5;
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  pointer-events: none;
+  z-index: 1000;
+  /* display: none; is now handled by React state */
+  max-width: 300px;
+  line-height: 1.5;
 }
 
 @media (max-width: 1024px) {
-    .container {
-        flex-direction: column;
-    }
+  .content-row {
+    flex-direction: column;
+  }
 
-    .leaderboard {
-        width: 100%;
-        position: relative;
-        top: 0;
-        max-height: 400px;
-        margin-bottom: 20px;
-    }
+  .leaderboard {
+    width: 100%;
+    position: relative;
+    top: 0;
+    max-height: 400px; /* Simpler height for mobile */
+    margin-bottom: 20px;
+  }
 
-    h1 {
-        font-size: 36px;
-    }
+  h1 {
+    font-size: 36px;
+  }
 }
 
 @media (max-width: 768px) {
-    h1 {
-        font-size: 28px;
-    }
+  h1 {
+    font-size: 28px;
+  }
 
-    .stats {
-        /* Stack stat boxes on small screens */
-        flex-direction: column;
-        align-items: stretch;
-    }
+  /* --- MODIFIED: Responsive Header/Stats --- */
+  .main-header-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+  
+  .main-header-banner .status-bar {
+      margin-top: 0;
+  }
 
-    .visualization-container {
-        min-height: 400px;
-        padding: 20px;
-    }
+  .stats {
+    position: static; /* Un-stick it */
+    margin-top: 20px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  /* --- END: Responsive --- */
 
-    .bubble.large {
-        width: 150px;
-        height: 150px;
-        font-size: 13px;
-        padding: 20px;
-    }
+  .visualization-container {
+    min-height: 400px;
+    padding: 20px;
+    /* padding-bottom: 20px; */ /* <-- REMOVED */
+  }
 
-    .bubble.medium {
-        width: 120px;
-        height: 120px;
-        font-size: 11px;
-        padding: 15px;
-    }
+  .bubble.large {
+    width: 150px;
+    height: 150px;
+    font-size: 13px;
+    padding: 20px;
+  }
 
-    .bubble.small {
-        width: 90px;
-        height: 90px;
-        font-size: 10px;
-        padding: 12px;
-    }
+  .bubble.medium {
+    width: 120px;
+    height: 120px;
+    font-size: 11px;
+    padding: 15px;
+  }
 
-    .bubble.tiny {
-        width: 70px;
-        height: 70px;
-        font-size: 9px;
-        padding: 10px;
-    }
+  .bubble.small {
+    width: 90px;
+    height: 90px;
+    font-size: 10px;
+    padding: 12px;
+  }
+
+  .bubble.tiny {
+    width: 70px;
+    height: 70px;
+    font-size: 9px;
+    padding: 10px;
+  }
 }
