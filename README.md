@@ -29,12 +29,6 @@
 
 <br>
 
-# TypeScript Reference / Cheatsheet
-
--- here
-
-<br>
-
 # Python API Reference / Cheatsheet
 
 This document lists **every public constant, function, and class** in the `app/` codebase with concise descriptions, reflecting the **per-edit streaming** architecture (one JSON line per qualifying edit).
