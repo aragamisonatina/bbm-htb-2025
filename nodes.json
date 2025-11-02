@@ -1,0 +1,71 @@
+{
+  "snippets": {
+    "central": "Motion to Rename the 'Prince Andrew' Wikipedia article to Andrew Mountbatten Windsor",
+
+    "arg_timing": "Timing: immediate rename vs wait until process completes.",
+    "arg_common": "Usage: follow COMMONNAME vs follow the palace announcement.",
+    "arg_authority": "Authority: King’s prerogative vs legal formalities.",
+    "arg_form": "Form: “Mountbatten Windsor” vs “Mountbatten-Windsor” (hyphen).",
+
+    "t_sup_1": "“Prince Andrew will now be known as Andrew Mountbatten Windsor.”",
+    "t_sup_2": "“BBC/Guardian/Reuters already drop ‘Prince’.”",
+    "t_sup_3": "“What purpose to have Wikipedia lag behind reality?”",
+    "t_opp_1": "“Too soon… Andrew has not been removed of his title yet.”",
+    "t_opp_2": "“WP:TOOSOON — the process has started, not finished.”",
+    "t_opp_3": "“Give it a few months and we’ll see what happens.”",
+
+    "c_sup_1": "“COMMONNAME = what RS use; many have dropped ‘Prince’.”",
+    "c_sup_2": "“NCROY: do not use hypothetical, dissolved or defunct titles.”",
+    "c_sup_3": "“BLP/NPOV: calling him ‘Prince’ now is misleading; say ‘formerly’.”",
+    "c_opp_1": "“Prince Andrew remains the common name after 65 years.”",
+    "c_opp_2": "“Sources are still calling him ‘Prince’ in reports right now.”",
+    "c_opp_3": "“WP:OFFICIAL cautions; readers recognise ‘Prince Andrew’.”",
+
+    "a_sup_1": "“The monarch can modify or revoke styles without Parliament.”",
+    "a_sup_2": "“Charles was King immediately on QEII’s death — same immediacy.”",
+    "a_sup_3": "“Present tense: ‘will now be known as’ ⇒ immediate effect.”",
+    "a_opp_1": "“Requires Act of Parliament and Royal Assent.”",
+    "a_opp_2": "“Wait for letters patent / London Gazette entries.”",
+    "a_opp_3": "“‘Initiated a formal process’ — ambiguous, not done yet.”",
+
+    "f_sup_1": "“Official statement has no hyphen — use ‘Mountbatten Windsor’.”",
+    "f_sup_2": "“Avoid OR; mirror the announcement’s form.”",
+    "f_opp_1": "“1960 Privy Council: legal surname is ‘Mountbatten-Windsor’.”",
+    "f_opp_2": "“London Gazette shows the hyphen.”",
+    "f_opp_3": "“Hyphen used historically (e.g., wedding documents).”"
+  },
+  "events": [
+    {"t":0.0, "id":"central"},
+
+    {"t":0.8, "id":"arg_timing"},
+    {"t":1.4, "id":"t_sup_1"},
+    {"t":1.9, "id":"t_opp_1"},
+    {"t":2.3, "id":"t_sup_2"},
+    {"t":2.6, "id":"t_opp_2"},
+    {"t":2.9, "id":"t_sup_3"},
+    {"t":3.0, "id":"t_opp_3"},
+
+    {"t":3.0, "id":"arg_common"},
+    {"t":3.3, "id":"c_sup_1"},
+    {"t":3.6, "id":"c_opp_1"},
+    {"t":3.9, "id":"c_sup_2"},
+    {"t":3.9, "id":"c_opp_2"},
+    {"t":4.2, "id":"c_sup_3"},
+    {"t":4.2, "id":"c_opp_3"},
+
+    {"t":4.6, "id":"arg_authority"},
+    {"t":4.8, "id":"a_sup_1"},
+    {"t":5.0, "id":"a_opp_2"},
+    {"t":5.0, "id":"a_sup_2"},
+    {"t":5.2, "id":"a_sup_3"},
+    {"t":5.2, "id":"a_opp_1"},
+    {"t":5.2, "id":"a_opp_3"},
+
+    {"t":5.8, "id":"arg_form"},
+    {"t":6.0, "id":"f_sup_1"},
+    {"t":6.0, "id":"f_opp_1"},
+    {"t":6.3, "id":"f_sup_2"},
+    {"t":6.3, "id":"f_opp_2"},
+    {"t":6.3, "id":"f_opp_3"}
+  ]
+}
