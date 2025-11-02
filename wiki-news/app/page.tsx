@@ -325,7 +325,7 @@ function useWikipediaEdits(
 
   const addBubble = useCallback(
     (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => {
-    (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => {
+
       setBubbles((prevBubbles) => {
         const { size, colorClass } = getBubbleAttributes(data, changeSize, sentiment.compound);
         
@@ -348,7 +348,6 @@ function useWikipediaEdits(
           state: "appearing",
           edinburghDegrees: data.edinburghDegrees,
           rawData: data,
-          sentiment: sentiment,
           sentiment: sentiment,
         };
 
@@ -375,7 +374,6 @@ function useWikipediaEdits(
 
   const addHeadline = useCallback(
     (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => {
-    (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => {
       const newHeadline: HeadlineState = {
         id: `headline-${data.id}-${Math.random()}`,
         title: headline,
@@ -384,7 +382,6 @@ function useWikipediaEdits(
         timestamp: new Date(data.timestamp * 1000),
         wiki: data.wiki,
         comment: data.comment || "",
-        sentiment: sentiment,
         sentiment: sentiment,
       };
       setHeadlines((prev) => [newHeadline, ...prev].slice(0, LEADERBOARD_SIZE));
@@ -842,7 +839,7 @@ function App() {
         }
       }
 
-      // --- Add Sentiment to Tooltip ---
+      // --- NEW: Add Sentiment to Tooltip ---
       let sentimentInfo = "";
       if (bubble.sentiment) {
         const score = (bubble.sentiment.compound * 100).toFixed(0);
@@ -860,7 +857,7 @@ function App() {
 
       const content = `
         <strong>${escapeHtml(data.title)}</strong><br>
-        ${sentimentInfo} {/* <-- ADDED SENTIMENT */}
+        ${sentimentInfo} 
         ${edinburghInfo}
         <strong>User:</strong> ${escapeHtml(data.user || "Anonymous")}<br>
         <strong>Change:</strong> ${changeText} bytes<br>
