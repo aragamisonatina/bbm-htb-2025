@@ -164,7 +164,9 @@ h1::first-letter {
   
   max-height: calc(100vh - 200px); 
   
-  overflow-y: auto;
+  /* --- MODIFIED: Added flex for scrollbar fix --- */
+  display: flex;
+  flex-direction: column;
 }
 
 .leaderboard h2 {
@@ -173,6 +175,15 @@ h1::first-letter {
   margin-bottom: 20px;
   color: black;
   font-family: "Linux Libertine", serif;
+  /* --- ADDED: Prevent title from shrinking --- */
+  flex-shrink: 0;
+}
+
+/* --- NEW: Ruleset for inner scrollable items --- */
+#leaderboard-items {
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-gutter: stable;
 }
 
 .leaderboard-item {
@@ -244,6 +255,7 @@ h1::first-letter {
 }
 
 .leaderboard-badge.edits {
+  /* Colors are now set inline via React */
   background-color: rgba(93, 126, 184, 0.2);
   color: #3d4f6f;
 }
@@ -253,21 +265,22 @@ h1::first-letter {
   color: #8b6f47;
 }
 
-.leaderboard::-webkit-scrollbar {
+/* --- MODIFIED: Scrollbar now targets inner div --- */
+#leaderboard-items::-webkit-scrollbar {
   width: 8px;
 }
 
-.leaderboard::-webkit-scrollbar-track {
+#leaderboard-items::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 4px;
 }
 
-.leaderboard::-webkit-scrollbar-thumb {
+#leaderboard-items::-webkit-scrollbar-thumb {
   background: rgba(61, 79, 111, 0.5);
   border-radius: 4px;
 }
 
-.leaderboard::-webkit-scrollbar-thumb:hover {
+#leaderboard-items::-webkit-scrollbar-thumb:hover {
   background: rgba(61, 79, 111, 0.7);
 }
 
@@ -309,6 +322,9 @@ h1::first-letter {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  
+  /* --- NEW: Default color for all bubbles --- */
+  color: #fff;
 }
 
 @keyframes bubbleAppear {
@@ -405,46 +421,35 @@ h1::first-letter {
   line-height: 1.1;
 }
 
-/* Color schemes based on edit size */
-.bubble.positive {
-  background-color: #5a7eb8;
-  color: #fff;
-  font-weight: 600;
+/* --- REMOVED: Old color schemes --- */
+/*
+.bubble.positive { ... }
+.bubble.large-positive { ... }
+.bubble.negative { ... }
+.bubble.large-negative { ... }
+.bubble.neutral { ... }
+.bubble.anon { ... }
+*/
+
+/* --- NEW: Color schemes based on sentiment --- */
+.bubble.sentiment-positive {
+  background-color: #5a7eb8; /* Blue */
 }
 
-.bubble.large-positive {
-  background-color: #3d4f6f;
-  color: #fff;
-  font-weight: 600;
+.bubble.sentiment-negative {
+  background-color: #c94343; /* Red */
 }
 
-.bubble.negative {
-  background-color: #e89148;
-  color: #fff;
-  font-weight: 700;
-}
-
-.bubble.large-negative {
-  background-color: #c94343;
-  color: #fff;
-  font-weight: 600;
-}
-
-.bubble.neutral {
-  background-color: #7b9ad1;
-  color: #fff;
-  font-weight: 600;
+.bubble.sentiment-neutral {
+  background-color: #d4a853; /* Yellow/Gold */
 }
 
 .bubble.bot {
-  background-color: #6b4c9f;
-  color: #fff;
-  font-weight: 600;
+  background-color: #6b4c9f; /* Purple */
 }
 
 .bubble.anon {
-  background-color: #46d113;
-  color: #fff;
+  background-color: #666; /* Grey */
   font-weight: 700;
 }
 
@@ -492,7 +497,7 @@ h1::first-letter {
     position: relative;
     top: 0;
     max-height: 400px; /* Simpler height for mobile */
-    margin-bottom: 20px;
+    margin-bottom: 40px; /* --- INCREASED GAP --- */
   }
 
   h1 {

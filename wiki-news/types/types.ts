@@ -28,6 +28,7 @@ export interface BubbleState {
   rawData: WikiEditData;
 }
 
+
 export interface HeadlineState {
   id: string;
   title: string;
@@ -36,6 +37,7 @@ export interface HeadlineState {
   timestamp: Date;
   wiki: string;
   comment: string;
+  sentiment?: SentimentData;
 }
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
@@ -52,4 +54,11 @@ export interface TooltipState {
   content: string;
   x: number;
   y: number;
+}
+
+export interface SentimentData {
+  neg: number;
+  neu: number;
+  pos: number;
+  compound: number;
 }
