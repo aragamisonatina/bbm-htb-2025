@@ -7,6 +7,7 @@
 ## Developers
 - aragamisonatina
 - beppermon
+- GregJHH
 - GStern05
 - mostafam99
 - samad-a
