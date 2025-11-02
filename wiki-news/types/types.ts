@@ -26,6 +26,7 @@ export interface BubbleState {
   state: "appearing" | "visible" | "fading";
   edinburghDegrees?: number;
   rawData: WikiEditData;
+  sentiment?: SentimentData;
 }
 
 
@@ -47,7 +48,12 @@ export interface StatsState {
   queueCount: number;
   lastEdit: string;
   filteredByEdinburgh?: number;
+  
+  positiveCount: number;
+  neutralCount: number;
+  negativeCount: number;
 }
+
 
 export interface TooltipState {
   visible: boolean;

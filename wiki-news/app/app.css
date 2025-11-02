@@ -1,11 +1,10 @@
 @font-face {
   font-family: 'Linux Libertine';
-  src: url('/LinLibertine.tff') format('tff'); /* Adjust filename and format if needed */
+  src: url('/LinLibertine.tff') format('tff'); 
   font-weight: normal;
   font-style: normal;
 }
 
-/* All CSS from your new <style> tag */
 * {
   margin: 0;
   padding: 0;
@@ -16,7 +15,6 @@ body {
   color: black;
   font-family: "Georgia", serif;
   background-color: #f0f0f0;
-  /* padding: 20px; */ /* <-- REMOVED */
   overflow-x: hidden;
 }
 
@@ -28,7 +26,6 @@ body.edinburgh-mode {
   background-attachment: fixed;
 }
 
-/* --- NEW: Full-width Header Wrapper --- */
 .main-header-banner-wrapper {
   width: 100%;
   padding: 20px;
@@ -458,10 +455,21 @@ h1::first-letter {
   font-size: 18px;
   color: #333;
   display: flex;
-  justify-content: flex-start; 
+  
+  
+  justify-content: space-between; 
+  
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* This ensures it stacks nicely on mobile */
   gap: 20px; 
+}
+
+.stats-group-left,
+.stats-group-right {
+  display: flex;
+  flex-wrap: wrap; /* Allows items *inside* the groups to wrap */
+  align-items: center;
+  gap: 20px; /* This is the same gap as the parent */
 }
 
 .stats strong {
@@ -473,6 +481,23 @@ h1::first-letter {
   padding: 10px 20px;
   border-radius: 12px;
 }
+
+/* --- NEW: Styles for Sentiment Stat Boxes --- */
+.stat-box.sentiment-positive {
+  background-color: #5a7eb8; /* Blue */
+  color: #fff;
+}
+
+.stat-box.sentiment-negative {
+  background-color: #c94343; /* Red */
+  color: #fff;
+}
+
+.stat-box.sentiment-neutral {
+  background-color: #d4a853; /* Yellow/Gold */
+  color: #fff;
+}
+/* --- END: New Stat Box Styles --- */
 
 .tooltip {
   position: absolute;
@@ -560,3 +585,4 @@ h1::first-letter {
     padding: 10px;
   }
 }
+

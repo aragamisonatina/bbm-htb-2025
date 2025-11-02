@@ -4,11 +4,12 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import "./app.css";
 import type {
   WikiEditData,
-  // BubbleState, // We will redefine this locally
+  BubbleState,
   HeadlineState,
   StatsState,
   TooltipState,
-  ConnectionStatus
+  ConnectionStatus,
+  SentimentData, // Make sure SentimentData is exported from types.ts
 } from "@/types/types";
 
 // configuration constants
@@ -19,32 +20,6 @@ const LEADERBOARD_SIZE = 10;
 const EVENTSTREAM_URL = "https://stream.wikimedia.org/v2/stream/recentchange";
 const BUBBLE_DELAY = 1500;
 const MAX_DEGREES_OF_SEPARATION = 4;
-
-// --- NEW: Type Definitions for Sentiment ---
-// (You can move these to your types.ts file)
-interface SentimentData {
-  neg: number;
-  neu: number;
-  pos: number;
-  compound: number;
-}
-
-// State for a bubble in the visualization
-interface BubbleState {
-  id: string;
-  title: string;
-  user: string;
-  changeSize: number;
-  size: "large" | "medium" | "small" | "tiny";
-  colorClass: string; // This will now be 'sentiment-positive', etc.
-  x: number;
-  y: number;
-  state: "appearing" | "visible" | "fading";
-  edinburghDegrees?: number;
-  rawData: WikiEditData;
-  sentiment?: SentimentData; // --- NEW: Store sentiment in bubble
-}
-// --- End of New Types ---
 
 
 // utility functions
@@ -59,8 +34,8 @@ const edinburghCache = new Map<string, number>();
 
 // --- MODIFIED: This function now determines color by SENTIMENT ---
 function getBubbleAttributes(
-  data: WikiEditData, 
-  changeSize: number, 
+  data: WikiEditData,
+  changeSize: number,
   sentimentCompound: number
 ) {
   const absSize = Math.abs(changeSize);
@@ -96,7 +71,6 @@ function checkOverlap(
   newPos: { x: number; y: number; radius: number },
   existingBubbles: BubbleState[]
 ) {
-  // ... existing code ...
   for (const bubble of existingBubbles) {
     const existingRadius = sizeMap[bubble.size] / 2;
     const existingX = bubble.x + existingRadius;
@@ -113,7 +87,6 @@ function checkOverlap(
 }
 
 function getRandomPosition(
-  // ... existing code ...
   containerEl: HTMLDivElement | null,
   size: BubbleState["size"],
   existingBubbles: BubbleState[]
@@ -140,7 +113,6 @@ function getRandomPosition(
 }
 
 function getTimeAgo(timestamp: Date, now: Date) {
-  // ... existing code ...
   const seconds = Math.floor((now.getTime() - timestamp.getTime()) / 1000);
   if (seconds < 10) return "just now";
   if (seconds < 60) return `${seconds}s ago`;
@@ -151,7 +123,6 @@ function getTimeAgo(timestamp: Date, now: Date) {
 }
 
 function escapeHtml(text: string) {
-  // ... existing code ...
   if (typeof text !== "string") return "";
   return text
     .replace(/&/g, "&amp;")
@@ -162,7 +133,6 @@ function escapeHtml(text: string) {
 }
 
 function decodeHtml(html: string): string {
-  // ... existing code ...
   if (typeof document === "undefined") return html;
   const txt = document.createElement("textarea");
   txt.innerHTML = html;
@@ -170,7 +140,6 @@ function decodeHtml(html: string): string {
 }
 
 function truncateForBubble(text: string, size: BubbleState["size"]): string {
-  // ... existing code ...
   if (!text) return "";
   const maxLengths = { large: 140, medium: 90, small: 55, tiny: 30 };
   const maxLength = maxLengths[size];
@@ -185,7 +154,6 @@ function truncateForBubble(text: string, size: BubbleState["size"]): string {
 }
 
 async function getDegreesFromEdinburgh(articleTitle: string): Promise<number> {
-  // ... existing code ...
   const normalize = (t: string) => t.trim().toLowerCase();
   const startKey = normalize(articleTitle);
   const maxDepth = MAX_DEGREES_OF_SEPARATION;
@@ -272,7 +240,7 @@ async function getDegreesFromEdinburgh(articleTitle: string): Promise<number> {
 
 /**
  * Provides a `Date` object that updates every `interval` milliseconds
-// ... existing code ...
+ * to force components using `getTimeAgo` to re-render.
  */
 function useTimeAgo(interval = 10000) {
   const [now, setNow] = useState(() => new Date());
@@ -286,7 +254,6 @@ function useTimeAgo(interval = 10000) {
 
 /**
  * Manages the state and handlers for the tooltip.
-// ... existing code ...
  */
 function useTooltip() {
   const [tooltip, setTooltip] = useState<TooltipState>({
@@ -332,22 +299,28 @@ function useTooltip() {
 
 /**
  * Manages EventSource connection, data processing queue,
-// ... existing code ...
+ * and all related application state (bubbles, headlines, stats).
  */
 function useWikipediaEdits(
   edinburghMode: boolean,
   visContainerRef: React.RefObject<HTMLDivElement | null>
 ) {
-  // ... existing code ...
   const [status, setStatus] = useState<{ type: ConnectionStatus; text: string }>(
     { type: "connecting", text: "Connecting to Wikipedia EventStreams..." }
   );
+  
+  // --- MODIFIED: Initial state for stats ---
   const [stats, setStats] = useState<StatsState>({
     totalEdits: 0,
     queueCount: 0,
     lastEdit: "-",
     filteredByEdinburgh: 0,
+    positiveCount: 0,
+    neutralCount: 0,
+    negativeCount: 0,
   });
+  // --- END: Initial state for stats ---
+
   const [headlines, setHeadlines] = useState<HeadlineState[]>([]);
   const [bubbles, setBubbles] = useState<BubbleState[]>([]);
 
@@ -356,9 +329,8 @@ function useWikipediaEdits(
   const isProcessingQueueRef = useRef(false);
 
   const addBubble = useCallback(
-    (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => { // --- 1. Accept sentiment
+    (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => {
       setBubbles((prevBubbles) => {
-        // --- 2. Pass sentiment compound score to get attributes ---
         const { size, colorClass } = getBubbleAttributes(data, changeSize, sentiment.compound);
         
         const position = getRandomPosition(
@@ -374,13 +346,13 @@ function useWikipediaEdits(
           user: data.user || "Anonymous",
           changeSize: changeSize,
           size: size,
-          colorClass: colorClass, // This is now 'sentiment-positive', etc.
+          colorClass: colorClass, 
           x: position.x,
           y: position.y,
           state: "appearing",
           edinburghDegrees: data.edinburghDegrees,
           rawData: data,
-          sentiment: sentiment, // --- 3. Store sentiment in bubble state ---
+          sentiment: sentiment,
         };
 
         setTimeout(() => {
@@ -405,7 +377,7 @@ function useWikipediaEdits(
   );
 
   const addHeadline = useCallback(
-    (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => { // --- 1. Accept sentiment
+    (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => {
       const newHeadline: HeadlineState = {
         id: `headline-${data.id}-${Math.random()}`,
         title: headline,
@@ -414,7 +386,7 @@ function useWikipediaEdits(
         timestamp: new Date(data.timestamp * 1000),
         wiki: data.wiki,
         comment: data.comment || "",
-        sentiment: sentiment, // --- 2. Store sentiment in headline state ---
+        sentiment: sentiment,
       };
       setHeadlines((prev) => [newHeadline, ...prev].slice(0, LEADERBOARD_SIZE));
     },
@@ -423,14 +395,12 @@ function useWikipediaEdits(
 
   const processEdit = useCallback(
     async (data: WikiEditData) => {
-      // ... existing code ...
       const changeSize = (data.length?.new || 0) - (data.length?.old || 0);
 
       const degrees = await getDegreesFromEdinburgh(data.title);
       data.edinburghDegrees = degrees;
 
       if (edinburghMode) {
-        // ... existing code ...
         if (degrees > MAX_DEGREES_OF_SEPARATION) {
           setStats((prev) => ({
             ...prev,
@@ -455,10 +425,9 @@ function useWikipediaEdits(
         });
 
         if (response.ok) {
-          // --- NEW: Destructure both headline and sentiment ---
           const { headline, sentiment: apiSentiment } = await response.json();
           headlineToUse = decodeHtml(headline);
-          sentiment = apiSentiment; // Store the sentiment
+          sentiment = apiSentiment;
         } else {
           console.error("API Error, using fallback title");
         }
@@ -466,22 +435,33 @@ function useWikipediaEdits(
         console.error("Failed to fetch headline, using fallback title:", error);
       }
 
-      // --- NEW: Pass sentiment to addBubble and addHeadline ---
       addBubble(data, changeSize, headlineToUse, sentiment);
       addHeadline(data, changeSize, headlineToUse, sentiment);
 
-      setStats((prev) => ({
-        // ... existing code ...
-        ...prev,
-        totalEdits: prev.totalEdits + 1,
-        lastEdit: new Date().toLocaleTimeString(),
-      }));
+      // --- MODIFIED: Update stats with sentiment counts ---
+      setStats((prev) => {
+        const newStats = {
+          ...prev,
+          totalEdits: prev.totalEdits + 1,
+          lastEdit: new Date().toLocaleTimeString(),
+        };
+
+        if (sentiment.compound > 0.05) {
+          newStats.positiveCount += 1;
+        } else if (sentiment.compound < -0.05) {
+          newStats.negativeCount += 1;
+        } else {
+          newStats.neutralCount += 1;
+        }
+        
+        return newStats;
+      });
+      // --- END: Update stats ---
     },
     [addBubble, addHeadline, edinburghMode]
   );
 
   const processQueue = useCallback(() => {
-    // ... existing code ...
     if (isProcessingQueueRef.current || bubbleQueueRef.current.length === 0) {
       return;
     }
@@ -504,7 +484,6 @@ function useWikipediaEdits(
   }, [processEdit]);
 
   useEffect(() => {
-    // ... existing code ...
     try {
       const eventSource = new EventSource(EVENTSTREAM_URL);
       eventSourceRef.current = eventSource;
@@ -563,7 +542,6 @@ function useWikipediaEdits(
 
 // tooltip component
 const Tooltip = React.memo(
-  // ... existing code ...
   ({ visible, x, y, content }: TooltipState) => {
     if (!visible) return null;
     return (
@@ -580,7 +558,6 @@ Tooltip.displayName = "Tooltip";
 
 // header component
 interface HeaderProps {
-  // ... existing code ...
   status: { type: ConnectionStatus; text: string };
   edinburghMode: boolean;
   onEdinburghModeChange: (checked: boolean) => void;
@@ -594,11 +571,10 @@ const Header = React.memo(
           <div>
             <h1>WIKI-WATCH</h1>
             <p className="subtitle">
-              real-time wikipedia article edits visualization
+              real-time climate of wikipedia
             </p>
           </div>
           <div className="status-bar">
-            {/* ... existing code ... */}
             <div
               className={`status-indicator ${status.type}`}
               id="status-indicator"
@@ -646,7 +622,6 @@ const LeaderboardItem = React.memo(
     rank: number;
     now: Date;
   }) => {
-    // ... existing code ...
     const timeAgo = getTimeAgo(headline.timestamp, now);
     const changeText =
       headline.changeSize > 0 ? `+${headline.changeSize}` : headline.changeSize;
@@ -669,7 +644,6 @@ const LeaderboardItem = React.memo(
         data-headline-id={headline.id}
         data-rank={rank + 1}
       >
-        {/* ... existing code ... */}
         <div className="leaderboard-rank">#{rank + 1}</div>
         <div className="leaderboard-headline">{headline.title}</div>
         <div className="leaderboard-meta">
@@ -726,7 +700,6 @@ Leaderboard.displayName = "Leaderboard";
 
 // bubble/visualisation window components
 interface BubbleProps {
-  // ... existing code ...
   bubble: BubbleState;
   onClick: (bubble: BubbleState) => void;
   onHoverStart: (e: React.MouseEvent, bubble: BubbleState) => void;
@@ -752,7 +725,6 @@ const Bubble = React.memo(
 Bubble.displayName = "Bubble";
 
 interface VisualizationProps {
-  // ... existing code ...
   bubbles: BubbleState[];
   onBubbleClick: (bubble: BubbleState) => void;
   onBubbleHoverStart: (e: React.MouseEvent, bubble: BubbleState) => void;
@@ -788,7 +760,6 @@ Visualization.displayName = "Visualization";
 
 // stats component
 interface StatsProps {
-  // ... existing code ...
   stats: StatsState;
   bubbleCount: number;
   edinburghMode: boolean;
@@ -797,26 +768,31 @@ interface StatsProps {
 const Stats = React.memo(
   ({ stats, bubbleCount, edinburghMode }: StatsProps) => {
     return (
-      <div className="stats">
-        {/* ... existing code ... */}
-        <div className="stat-box">
-          <strong id="edit-count">{stats.totalEdits}</strong> edits received
-        </div>
-        <div className="stat-box">
-          <strong id="active-count">{bubbleCount}</strong> active bubbles
-        </div>
-        <div className="stat-box">
-          <strong id="queue-count">{stats.queueCount}</strong> in queue
-        </div>
-        {edinburghMode && (
+     <div className="stats">
+        <div className="stats-group-left">
           <div className="stat-box">
-            <strong>{stats.filteredByEdinburgh || 0}</strong> filtered by
-            Edinburgh
+            <strong id="edit-count">{stats.totalEdits}</strong> edits received
           </div>
-        )}
-        <div className="stat-box">
-          Last edit: <strong id="last-edit">{stats.lastEdit}</strong>
+          {edinburghMode && (
+            <div className="stat-box">
+              <strong>{stats.filteredByEdinburgh || 0}</strong> filtered by
+              Edinburgh
+            </div>
+          )}
         </div>
+
+        <div className="stats-group-right">
+          <div className="stat-box sentiment-positive">
+            <strong>{stats.positiveCount}</strong> positive
+          </div>
+          <div className="stat-box sentiment-neutral">
+            <strong>{stats.neutralCount}</strong> neutral
+          </div>
+          <div className="stat-box sentiment-negative">
+            <strong>{stats.negativeCount}</strong> negative
+          </div>
+        </div>
+        
       </div>
     );
   }
@@ -825,7 +801,6 @@ Stats.displayName = "Stats";
 
 // use edinburgh mode body class when toggled 
 function useEdinburghBodyClass(edinburghMode: boolean) {
-  // ... existing code ...
   useEffect(() => {
     const bodyClass = "edinburgh-mode";
     if (edinburghMode) {
@@ -841,7 +816,6 @@ function useEdinburghBodyClass(edinburghMode: boolean) {
 
 // main app components
 function App() {
-  // ... existing code ...
   const [edinburghMode, setEdinburghMode] = useState(false);
   const visContainerRef = useRef<HTMLDivElement>(null);
 
@@ -857,14 +831,12 @@ function App() {
   // event handlers
   const handleBubbleHoverStart = useCallback(
     (e: React.MouseEvent, bubble: BubbleState) => {
-      // ... existing code ...
       const data = bubble.rawData;
       const changeText =
         bubble.changeSize > 0 ? `+${bubble.changeSize}` : bubble.changeSize;
 
       let edinburghInfo = "";
       if (edinburghMode && typeof bubble.edinburghDegrees === "number") {
-        // ... existing code ...
         if (bubble.edinburghDegrees === 1) {
           edinburghInfo = `<strong>🏴󠁧󠁢󠁳󠁣󠁴󠁿 Edinburgh Degrees:</strong> <span style="color: #8b6f47; font-weight: 600;">1 (Direct link)</span><br>`;
         } else if (bubble.edinburghDegrees <= 4) {
@@ -874,7 +846,7 @@ function App() {
         }
       }
 
-      // --- NEW: Add Sentiment to Tooltip ---
+      // --- Add Sentiment to Tooltip ---
       let sentimentInfo = "";
       if (bubble.sentiment) {
         const score = (bubble.sentiment.compound * 100).toFixed(0);
@@ -893,7 +865,7 @@ function App() {
 
       const content = `
         <strong>${escapeHtml(data.title)}</strong><br>
-        ${sentimentInfo}
+        ${sentimentInfo} {/* <-- ADDED SENTIMENT */}
         ${edinburghInfo}
         <strong>User:</strong> ${escapeHtml(data.user || "Anonymous")}<br>
         <strong>Change:</strong> ${changeText} bytes<br>
@@ -911,7 +883,6 @@ function App() {
   );
 
   const handleBubbleClick = (bubble: BubbleState) => {
-    // ... existing code ...
     const { rawData } = bubble;
     if (!rawData.revision || !rawData.revision.new) {
       console.warn("No revision data found, cannot open link.", rawData);
@@ -965,3 +936,4 @@ function App() {
 }
 
 export default App;
+
