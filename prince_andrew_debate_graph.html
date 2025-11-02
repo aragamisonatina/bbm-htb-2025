@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prince Andrew Debate</title>
+    <script type="text/javascript" src="lib/vis-9.1.2/vis-network.min.js"></script>
+    <link href="lib/vis-9.1.2/vis-network.css" rel="stylesheet" type="text/css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: white;
+        }
+
+        #mynetwork {
+            width: 100vw;
+            height: 100vh;
+            background: white;
+        }
+
+        .controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            min-width: 200px;
+        }
+
+        .title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            border-bottom: 2px solid #333;
+            padding-bottom: 6px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin: 3px;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            background: #333;
+            color: white;
+            transition: all 0.3s;
+            font-weight: 600;
+            width: 100%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+            background: #555;
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.danger {
+            background: #dc3545;
+        }
+
+        button.danger:hover {
+            background: #c82333;
+        }
+
+        button.secondary {
+            background: #007bff;
+        }
+
+        button.secondary:hover {
+            background: #0056b3;
+        }
+
+        .info {
+            margin-top: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #333;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .info-value {
+            color: #666;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #333;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .page-title {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+            font-size: 24px;
+            font-weight: bold;
+            color: #000;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-title">Motion to Rename the "Prince Andrew" Wikipedia article to Andrew Mountbatten Windsor'</div>
+
+    <div class="controls">
+        <div class="title">Debate Simulation</div>
+        <button onclick="startSimulation()">▶ Start</button>
+        <button class="danger" onclick="stopSimulation()">⏸ Pause</button>
+        <button class="secondary" onclick="resetGraph()">↻ Reset</button>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+        <div class="info">
+            <div class="info-row">
+                <span class="info-label">Nodes:</span>
+                <span class="info-value" id="nodeCount">0</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Time:</span>
+                <span class="info-value" id="timeDisplay">0.0s</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="mynetwork"></div>
+
+    <script type="text/javascript">
+        // Load the debate data
+        const debateData = {
+            "snippets": {
+                "central": "Move 'Prince Andrew' → 'Andrew Mountbatten Windsor' per palace: \"will now be known as\".",
+                "arg_timing": "Timing: immediate rename vs wait until process completes.",
+                "arg_common": "Usage: follow COMMONNAME vs follow the palace announcement.",
+                "arg_authority": "Authority: King's prerogative vs legal formalities.",
+                "arg_form": "Form: \"Mountbatten Windsor\" vs \"Mountbatten-Windsor\" (hyphen).",
+                "t_sup_1": "\"Prince Andrew will now be known as Andrew Mountbatten Windsor.\"",
+                "t_sup_2": "\"BBC/Guardian/Reuters already drop 'Prince'.\"",
+                "t_sup_3": "\"What purpose to have Wikipedia lag behind reality?\"",
+                "t_opp_1": "\"Too soon… Andrew has not been removed of his title yet.\"",
+                "t_opp_2": "\"WP:TOOSOON — the process has started, not finished.\"",
+                "t_opp_3": "\"Give it a few months and we'll see what happens.\"",
+                "c_sup_1": "\"COMMONNAME = what RS use; many have dropped 'Prince'.\"",
+                "c_sup_2": "\"NCROY: do not use hypothetical, dissolved or defunct titles.\"",
+                "c_sup_3": "\"BLP/NPOV: calling him 'Prince' now is misleading; say 'formerly'.\"",
+                "c_opp_1": "\"Prince Andrew remains the common name after 65 years.\"",
+                "c_opp_2": "\"Sources are still calling him 'Prince' in reports right now.\"",
+                "c_opp_3": "\"WP:OFFICIAL cautions; readers recognise 'Prince Andrew'.\"",
+                "a_sup_1": "\"The monarch can modify or revoke styles without Parliament.\"",
+                "a_sup_2": "\"Charles was King immediately on QEII's death — same immediacy.\"",
+                "a_sup_3": "\"Present tense: 'will now be known as' ⇒ immediate effect.\"",
+                "a_opp_1": "\"Requires Act of Parliament and Royal Assent.\"",
+                "a_opp_2": "\"Wait for letters patent / London Gazette entries.\"",
+                "a_opp_3": "\"'Initiated a formal process' — ambiguous, not done yet.\"",
+                "f_sup_1": "\"Official statement has no hyphen — use 'Mountbatten Windsor'.\"",
+                "f_sup_2": "\"Avoid OR; mirror the announcement's form.\"",
+                "f_opp_1": "\"1960 Privy Council: legal surname is 'Mountbatten-Windsor'.\"",
+                "f_opp_2": "\"London Gazette shows the hyphen.\"",
+                "f_opp_3": "\"Hyphen used historically (e.g., wedding documents).\""
+            },
+            "events": [
+                { "t": 0.0, "id": "central" },
+                { "t": 2.0, "id": "arg_timing" },
+                { "t": 3.5, "id": "t_sup_1" },
+                { "t": 5.0, "id": "t_opp_1" },
+                { "t": 6.5, "id": "t_sup_2" },
+                { "t": 7.5, "id": "t_opp_2" },
+                { "t": 8.5, "id": "t_sup_3" },
+                { "t": 9.5, "id": "t_opp_3" },
+                { "t": 11.0, "id": "arg_common" },
+                { "t": 12.5, "id": "c_sup_1" },
+                { "t": 14.0, "id": "c_opp_1" },
+                { "t": 15.5, "id": "c_sup_2" },
+                { "t": 16.5, "id": "c_opp_2" },
+                { "t": 18.0, "id": "c_sup_3" },
+                { "t": 19.0, "id": "c_opp_3" },
+                { "t": 21.0, "id": "arg_authority" },
+                { "t": 22.5, "id": "a_sup_1" },
+                { "t": 24.0, "id": "a_opp_2" },
+                { "t": 25.0, "id": "a_sup_2" },
+                { "t": 26.5, "id": "a_sup_3" },
+                { "t": 27.5, "id": "a_opp_1" },
+                { "t": 28.5, "id": "a_opp_3" },
+                { "t": 30.5, "id": "arg_form" },
+                { "t": 32.0, "id": "f_sup_1" },
+                { "t": 33.0, "id": "f_opp_1" },
+                { "t": 34.5, "id": "f_sup_2" },
+                { "t": 35.5, "id": "f_opp_2" },
+                { "t": 36.5, "id": "f_opp_3" }
+            ]
+        };
+
+        // Initialize nodes and edges
+        let nodes = new vis.DataSet([]);
+        let edges = new vis.DataSet([]);
+
+        // Create a network
+        const container = document.getElementById('mynetwork');
+        const data = {
+            nodes: nodes,
+            edges: edges
+        };
+
+        const options = {
+            physics: {
+                enabled: true,
+                barnesHut: {
+                    gravitationalConstant: -5000,
+                    centralGravity: 0.1,
+                    springLength: 100,
+                    springConstant: 0.04,
+                    damping: 0.4,
+                    avoidOverlap: 0.5
+                },
+                stabilization: {
+                    enabled: true,
+                    iterations: 150,
+                    updateInterval: 10,
+                    fit: false
+                },
+                minVelocity: 0.75,
+                maxVelocity: 10,
+                solver: 'barnesHut',
+                timestep: 0.5
+            },
+            nodes: {
+                borderWidth: 3,
+                font: {
+                    size: 24,
+                    face: 'Arial',
+                    color: '#000000',
+                    bold: '700',
+                    align: 'center'
+                },
+                mass: 2,
+                shadow: false,
+                shape: 'circle',
+                labelHighlightBold: true
+            },
+            edges: {
+                color: {
+                    color: '#000000',
+                    opacity: 1
+                },
+                width: 2,
+                smooth: {
+                    enabled: true,
+                    type: 'dynamic',
+                    roundness: 0.5
+                },
+                shadow: false
+            },
+            interaction: {
+                hover: true,
+                navigationButtons: false,
+                keyboard: true,
+                zoomView: true,
+                dragView: true
+            }
+        };
+
+        const network = new vis.Network(container, data, options);
+
+        // Counters
+        let nodeIdCounter = 1;
+        let simulationInterval = null;
+        let nodeIdMap = new Map(); // Maps text id to node id
+        let argumentPositions = {
+            'arg_timing': { x: -250, y: -200 },
+            'arg_common': { x: 250, y: -200 },
+            'arg_authority': { x: -250, y: 200 },
+            'arg_form': { x: 250, y: 200 }
+        };
+
+        // Helper function to determine node type and styling
+        function getNodeStyle(textId, text) {
+            let shape, size, borderColor, mass, color;
+
+            if (textId === 'central') {
+                color = '#ffffff';
+                borderColor = '#000000';
+                shape = 'circle';
+                size = 40;
+                mass = 10;
+            } else if (textId.startsWith('arg_')) {
+                color = '#ffffff';
+                borderColor = '#000000';
+                shape = 'circle';
+                size = 35;
+                mass = 8;
+            } else if (textId.includes('_sup_')) {
+                color = '#90EE90'; // Light green
+                borderColor = '#228B22'; // Forest green
+                shape = 'circle';
+                size = 25;
+                mass = 3;
+            } else if (textId.includes('_opp_')) {
+                color = '#FFB6C1'; // Light pink/red
+                borderColor = '#DC143C'; // Crimson
+                shape = 'circle';
+                size = 25;
+                mass = 3;
+            } else {
+                color = '#ffffff';
+                borderColor = '#000000';
+                shape = 'circle';
+                size = 25;
+                mass = 3;
+            }
+
+            return { color, shape, size, borderColor, mass };
+        }
+
+        // Helper function to find parent node
+        function findParentNode(textId) {
+            if (textId === 'central') return null;
+
+            // Arguments connect to central node
+            if (textId.startsWith('arg_')) {
+                return nodeIdMap.get('central');
+            }
+
+            // Supporting/opposing points connect to their argument
+            if (textId.includes('_sup_') || textId.includes('_opp_')) {
+                const prefix = textId.split('_')[0]; // e.g., 't', 'c', 'a', 'f'
+                let argId;
+                if (prefix === 't') argId = 'arg_timing';
+                else if (prefix === 'c') argId = 'arg_common';
+                else if (prefix === 'a') argId = 'arg_authority';
+                else if (prefix === 'f') argId = 'arg_form';
+
+                return nodeIdMap.get(argId);
+            }
+
+            return null;
+        }
+
+        // Get position for new node
+        function getNodePosition(textId, parentId) {
+            // Central node at origin
+            if (textId === 'central') {
+                return { x: 0, y: 0 };
+            }
+
+            // Arguments get fixed positions
+            if (textId.startsWith('arg_')) {
+                return argumentPositions[textId];
+            }
+
+            // Supporting/opposing nodes appear around their parent in a radial pattern
+            if (parentId !== null && parentId !== undefined) {
+                const parentPos = network.getPositions([parentId])[parentId];
+                if (parentPos) {
+                    // Count existing children to distribute them evenly
+                    const existingEdges = edges.get({
+                        filter: function (edge) {
+                            return edge.from === parentId;
+                        }
+                    });
+                    const childIndex = existingEdges.length;
+
+                    // Create radial distribution - smaller radius to keep on screen
+                    const radius = 80;
+                    const angleStep = (Math.PI * 2) / 8; // Assume max 8 children per argument
+                    const angle = angleStep * childIndex;
+
+                    return {
+                        x: parentPos.x + Math.cos(angle) * radius,
+                        y: parentPos.y + Math.sin(angle) * radius
+                    };
+                }
+            }
+
+            return undefined; // Let physics decide
+        }
+
+        // Add node to network
+        function addNode(textId, text) {
+            const nodeId = nodeIdCounter++;
+            nodeIdMap.set(textId, nodeId);
+
+            const style = getNodeStyle(textId, text);
+
+            // Only show labels for argument nodes
+            let nodeLabel = '';
+            let fontSize = 24;
+            let fontColor = '#000000';
+
+            if (textId.startsWith('arg_')) {
+                // Extract the argument name
+                if (textId === 'arg_timing') nodeLabel = 'Timing';
+                else if (textId === 'arg_common') nodeLabel = 'Common Name';
+                else if (textId === 'arg_authority') nodeLabel = 'Authority';
+                else if (textId === 'arg_form') nodeLabel = 'Form';
+            }
+
+            // Get parent and position
+            const parentId = findParentNode(textId);
+            const position = getNodePosition(textId, parentId);
+
+            const nodeConfig = {
+                id: nodeId,
+                label: nodeLabel,
+                color: {
+                    background: style.color,
+                    border: style.borderColor,
+                    highlight: {
+                        background: style.color === '#ffffff' ? '#f0f0f0' : style.color,
+                        border: style.borderColor
+                    }
+                },
+                shape: style.shape,
+                size: style.size,
+                font: {
+                    size: fontSize,
+                    color: fontColor,
+                    bold: '700',
+                    align: 'center'
+                },
+                mass: style.mass,
+                title: text, // Tooltip shows full text
+                fixed: (textId === 'central' || textId.startsWith('arg_')) ? { x: true, y: true } : { x: false, y: false }
+            };
+
+            if (position) {
+                nodeConfig.x = position.x;
+                nodeConfig.y = position.y;
+            }
+
+            nodes.add(nodeConfig);
+
+            // Add edge to parent
+            if (parentId !== null && parentId !== undefined) {
+                edges.add({
+                    from: parentId,
+                    to: nodeId,
+                    color: {
+                        color: '#000000',
+                        opacity: 0.6
+                    },
+                    width: 2,
+                    length: textId.startsWith('arg_') ? 200 : 80
+                });
+            }
+
+            updateCounters();
+
+            // Smoothly zoom out as more nodes are added
+            smoothZoomToFit();
+        }
+
+        // Smooth zoom function that gradually adjusts the view
+        function smoothZoomToFit() {
+            // Calculate appropriate scale based on number of nodes
+            let targetScale;
+            const nodeCount = nodes.length;
+
+            if (nodeCount <= 1) {
+                targetScale = 1.2;
+            } else if (nodeCount <= 5) {
+                targetScale = 1.0;
+            } else if (nodeCount <= 10) {
+                targetScale = 0.8;
+            } else if (nodeCount <= 15) {
+                targetScale = 0.65;
+            } else if (nodeCount <= 20) {
+                targetScale = 0.55;
+            } else {
+                targetScale = 0.45;
+            }
+
+            // Get current scale
+            const currentScale = network.getScale();
+
+            // Only zoom if we need to zoom out (scale is getting smaller)
+            if (targetScale < currentScale) {
+                network.moveTo({
+                    position: { x: 0, y: 0 },
+                    scale: targetScale,
+                    animation: {
+                        duration: 1200,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+            }
+        }
+
+        // Wrap text for display
+        function wrapText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+
+            for (const word of words) {
+                if ((currentLine + word).length > maxLength && currentLine.length > 0) {
+                    lines.push(currentLine.trim());
+                    currentLine = word + ' ';
+                } else {
+                    currentLine += word + ' ';
+                }
+            }
+            if (currentLine.length > 0) {
+                lines.push(currentLine.trim());
+            }
+
+            return lines.slice(0, 2).join('\n') + (lines.length > 2 ? '...' : '');
+        }
+
+        // Update counter display
+        function updateCounters() {
+            document.getElementById('nodeCount').textContent = nodes.length;
+        }
+
+        // Initialize the graph
+        function initializeGraph() {
+            nodes.clear();
+            edges.clear();
+            nodeIdMap.clear();
+            nodeIdCounter = 1;
+
+            updateCounters();
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('timeDisplay').textContent = '0.0s';
+
+            // Set initial view to show the entire graph area
+            network.fit({
+                animation: false,
+                padding: 150
+            });
+        }
+
+        // Start simulation
+        function startSimulation() {
+            if (simulationInterval) {
+                console.log("Simulation already running");
+                return;
+            }
+
+            // Use all events
+            const events = debateData.events;
+            const maxTime = events[events.length - 1].t;
+
+            let eventIndex = 0;
+            const startTime = Date.now();
+            const timeScale = 1000; // 1 second per time unit
+
+            simulationInterval = setInterval(() => {
+                if (eventIndex >= events.length) {
+                    stopSimulation();
+                    console.log("Simulation complete!");
+                    document.getElementById('progressBar').style.width = '100%';
+                    return;
+                }
+
+                const elapsed = (Date.now() - startTime) / timeScale;
+                const currentEvent = events[eventIndex];
+
+                // Update progress and time display
+                const progress = (elapsed / maxTime) * 100;
+                document.getElementById('progressBar').style.width = Math.min(progress, 100) + '%';
+                document.getElementById('timeDisplay').textContent = elapsed.toFixed(1) + 's';
+
+                if (elapsed >= currentEvent.t) {
+                    const text = debateData.snippets[currentEvent.id];
+                    if (text) {
+                        addNode(currentEvent.id, text);
+                    }
+                    eventIndex++;
+                }
+            }, 50);
+
+            console.log("Simulation started!");
+        }
+
+        // Stop simulation
+        function stopSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                console.log("Simulation paused!");
+            }
+        }
+
+        // Reset graph
+        function resetGraph() {
+            stopSimulation();
+            initializeGraph();
+            console.log("Graph reset!");
+        }
+
+        // Initialize on load
+        initializeGraph();
+
+        // Set initial zoom to show entire graph area when first loaded
+        setTimeout(() => {
+            network.moveTo({
+                position: { x: 0, y: 0 },
+                scale: 1.2,
+                animation: false
+            });
+        }, 100);
+
+        console.log("Prince Andrew Wikipedia Debate Graph initialized!");
+        console.log("Click 'Start Simulation' to begin the debate visualization!");
+    </script>
+</body>
+
+</html>
