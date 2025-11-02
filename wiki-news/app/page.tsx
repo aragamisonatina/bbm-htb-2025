@@ -32,7 +32,6 @@ const sizeMap = {
 
 const edinburghCache = new Map<string, number>();
 
-// --- MODIFIED: This function now determines color by SENTIMENT ---
 function getBubbleAttributes(
   data: WikiEditData,
   changeSize: number,
@@ -48,7 +47,6 @@ function getBubbleAttributes(
   else if (absSize >= 100) size = "small";
   else size = "tiny";
 
-  // --- NEW: Color logic is now based on sentiment ---
   if (data.bot) {
     colorClass = "bot";
   } else if (data.user) {
@@ -60,12 +58,10 @@ function getBubbleAttributes(
       colorClass = "sentiment-neutral";
     }
   } else {
-    // Fallback for anonymous users
     colorClass = "anon";
   }
   return { size, colorClass };
 }
-// --- END: getBubbleAttributes ---
 
 function checkOverlap(
   newPos: { x: number; y: number; radius: number },
@@ -299,7 +295,6 @@ function useTooltip() {
 
 /**
  * Manages EventSource connection, data processing queue,
- * and all related application state (bubbles, headlines, stats).
  */
 function useWikipediaEdits(
   edinburghMode: boolean,
@@ -330,6 +325,7 @@ function useWikipediaEdits(
 
   const addBubble = useCallback(
     (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => {
+    (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => {
       setBubbles((prevBubbles) => {
         const { size, colorClass } = getBubbleAttributes(data, changeSize, sentiment.compound);
         
@@ -352,6 +348,7 @@ function useWikipediaEdits(
           state: "appearing",
           edinburghDegrees: data.edinburghDegrees,
           rawData: data,
+          sentiment: sentiment,
           sentiment: sentiment,
         };
 
@@ -378,6 +375,7 @@ function useWikipediaEdits(
 
   const addHeadline = useCallback(
     (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => {
+    (data: WikiEditData, changeSize: number, headline: string, sentiment: SentimentData) => {
       const newHeadline: HeadlineState = {
         id: `headline-${data.id}-${Math.random()}`,
         title: headline,
@@ -386,6 +384,7 @@ function useWikipediaEdits(
         timestamp: new Date(data.timestamp * 1000),
         wiki: data.wiki,
         comment: data.comment || "",
+        sentiment: sentiment,
         sentiment: sentiment,
       };
       setHeadlines((prev) => [newHeadline, ...prev].slice(0, LEADERBOARD_SIZE));
@@ -411,7 +410,7 @@ function useWikipediaEdits(
       }
 
       let headlineToUse = data.title;
-      let sentiment: SentimentData = { neg: 0, neu: 1, pos: 0, compound: 0 }; // Default neutral
+      let sentiment: SentimentData = { neg: 0, neu: 1, pos: 0, compound: 0 };
       
       try {
         const response = await fetch("/api/generate-headline", {
@@ -626,17 +625,15 @@ const LeaderboardItem = React.memo(
     const changeText =
       headline.changeSize > 0 ? `+${headline.changeSize}` : headline.changeSize;
     
-    // --- NEW: Determine color based on sentiment ---
     const sentiment = headline.sentiment;
-    let sentimentColor = "#d4a853"; // Neutral default
+    let sentimentColor = "#d4a853"; // default
     if (sentiment) {
       if (sentiment.compound > 0.05) {
-        sentimentColor = "#5a7eb8"; // Positive
+        sentimentColor = "#5a7eb8"; // positive
       } else if (sentiment.compound < -0.05) {
-        sentimentColor = "#c94343"; // Negative
+        sentimentColor = "#c94343"; // negative
       }
     }
-    // --- END: Sentiment Color ---
 
     return (
       <div
@@ -650,7 +647,6 @@ const LeaderboardItem = React.memo(
           <span
             className="leaderboard-badge edits"
             style={{
-              // --- MODIFIED: Use sentimentColor ---
               backgroundColor: `${sentimentColor}20`,
               color: sentimentColor,
             }}
@@ -861,7 +857,6 @@ function App() {
         }
         sentimentInfo = `<strong>Sentiment:</strong> <span style="color: ${sentimentColor}; font-weight: 600;">${sentimentText} (${score}%)</span><br>`;
       }
-      // --- END: Sentiment Tooltip ---
 
       const content = `
         <strong>${escapeHtml(data.title)}</strong><br>

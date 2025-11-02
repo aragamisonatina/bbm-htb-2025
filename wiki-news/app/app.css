@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'Linux Libertine';
-  src: url('/LinLibertine.tff') format('tff'); 
+  src: url('/LinLibertine.tff') format('tff');
   font-weight: normal;
   font-style: normal;
 }
@@ -41,21 +41,19 @@ body.edinburgh-mode {
   align-items: flex-start;
   gap: 20px;
   width: 100%;
-  max-width: 1400px; /* Aligns with container */
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-/* --- MODIFIED: Container --- */
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  display: block; /* No longer flex */
+  display: block;
   position: relative;
   z-index: 1;
-  padding: 20px; /* Add padding back */
+  padding: 20px;
 }
 
-/* --- NEW: Content Row --- */
 .content-row {
   display: flex;
   gap: 20px;
@@ -67,30 +65,29 @@ body.edinburgh-mode {
 }
 
 .main-header-banner .status-bar {
-  margin-bottom: 0; /* Remove old margin */
-  flex-shrink: 0; /* Prevent it from shrinking */
-  margin-top: 10px; /* Align nicely with title */
+  margin-bottom: 0;
+  flex-shrink: 0;
+  margin-top: 10px;
 }
-/* --- END: Header Banner --- */
 
 h1 {
   color: black;
   font-size: 48px;
   font-weight: 400;
   letter-spacing: 2px;
-  margin-bottom: 5px; /* Reduced margin */
+  margin-bottom: 5px;
   font-family: "Linux Libertine", serif;
 }
 
 h1::first-letter {
-  font-size: 1.3em; /* Makes it 25% bigger than the rest */
+  font-size: 1.3em;
   line-height: 1;
 }
 
 .subtitle {
   font-size: 18px;
   color: #333;
-  margin-bottom: 0; /* Removed margin */
+  margin-bottom: 0;
   font-weight: 300;
 }
 
@@ -172,11 +169,10 @@ h1::first-letter {
   margin-bottom: 20px;
   color: black;
   font-family: "Linux Libertine", serif;
-  /* --- ADDED: Prevent title from shrinking --- */
+  /*prevent title from shrinking*/
   flex-shrink: 0;
 }
 
-/* --- NEW: Ruleset for inner scrollable items --- */
 #leaderboard-items {
   overflow-y: auto;
   flex: 1;
@@ -232,7 +228,6 @@ h1::first-letter {
   color: #000;
   margin-bottom: 8px;
   line-height: 1.4;
-  /* Prevent long words from breaking layout */
   word-break: break-word;
 }
 
@@ -252,7 +247,6 @@ h1::first-letter {
 }
 
 .leaderboard-badge.edits {
-  /* Colors are now set inline via React */
   background-color: rgba(93, 126, 184, 0.2);
   color: #3d4f6f;
 }
@@ -262,7 +256,6 @@ h1::first-letter {
   color: #8b6f47;
 }
 
-/* --- MODIFIED: Scrollbar now targets inner div --- */
 #leaderboard-items::-webkit-scrollbar {
   width: 8px;
 }
@@ -289,7 +282,6 @@ h1::first-letter {
   min-height: 500px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  /* padding-bottom: 80px; */ /* <-- REMOVED */
 }
 
 .bubble {
@@ -308,19 +300,15 @@ h1::first-letter {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   animation: bubbleAppear 0.5s ease-in-out;
   opacity: 1;
-  /* Prevent text selection */
   user-select: none;
-  /* Text overflow handling */
   overflow: hidden;
   word-wrap: break-word;
   word-break: break-word;
   hyphens: auto;
-  /* Better text rendering */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   
-  /* --- NEW: Default color for all bubbles --- */
   color: #fff;
 }
 
@@ -341,7 +329,6 @@ h1::first-letter {
 }
 
 .bubble.fading {
-  /* Use 'fading' state to trigger animation */
   animation: bubbleFade 2s ease-out forwards;
 }
 
@@ -418,35 +405,24 @@ h1::first-letter {
   line-height: 1.1;
 }
 
-/* --- REMOVED: Old color schemes --- */
-/*
-.bubble.positive { ... }
-.bubble.large-positive { ... }
-.bubble.negative { ... }
-.bubble.large-negative { ... }
-.bubble.neutral { ... }
-.bubble.anon { ... }
-*/
-
-/* --- NEW: Color schemes based on sentiment --- */
 .bubble.sentiment-positive {
-  background-color: #5a7eb8; /* Blue */
+  background-color: #5a7eb8;
 }
 
 .bubble.sentiment-negative {
-  background-color: #c94343; /* Red */
+  background-color: #c94343;
 }
 
 .bubble.sentiment-neutral {
-  background-color: #d4a853; /* Yellow/Gold */
+  background-color: #d4a853;
 }
 
 .bubble.bot {
-  background-color: #6b4c9f; /* Purple */
+  background-color: #6b4c9f;
 }
 
 .bubble.anon {
-  background-color: #666; /* Grey */
+  background-color: #666;
   font-weight: 700;
 }
 
@@ -521,8 +497,8 @@ h1::first-letter {
     width: 100%;
     position: relative;
     top: 0;
-    max-height: 400px; /* Simpler height for mobile */
-    margin-bottom: 40px; /* --- INCREASED GAP --- */
+    max-height: 400px;
+    margin-bottom: 40px;
   }
 
   h1 {
@@ -546,7 +522,7 @@ h1::first-letter {
   }
 
   .stats {
-    position: static; /* Un-stick it */
+    position: static;
     margin-top: 20px;
     flex-direction: column;
     align-items: stretch;

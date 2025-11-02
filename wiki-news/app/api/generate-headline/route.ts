@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Ollama } from 'ollama';
-import { SentimentIntensityAnalyzer } from 'vader-sentiment'; // 1. Import VADER
+import { SentimentIntensityAnalyzer } from 'vader-sentiment';
 
 const ollama = new Ollama({ host: 'http://localhost:11434' });
 
@@ -20,7 +20,6 @@ export async function POST(request: Request) {
     Do not include "Here's a headline:" or any other explanatory text.
     `;
 
-    // --- Headline Generation (No Change) ---
     const response = await ollama.chat({
       model: 'llama3.2:1b',
       messages: [{ role: 'user', content: prompt }],
@@ -29,23 +28,19 @@ export async function POST(request: Request) {
 
     const headline = response.message.content.trim().replace(/"/g, '');
 
-    // --- 2. VADER Sentiment Analysis ---
-    // Analyze the sentiment of the *generated headline*.
+    // analyze sentiment of our generated headlines
     const sentiment = SentimentIntensityAnalyzer.polarity_scores(headline);
     
     /*
-     * The 'sentiment' object will look like this:
-     * { neg: 0.0, neu: 0.323, pos: 0.677, compound: 0.6369 }
+     * 'sentiment' object will look like
+     * {neg: 0.0, neu: 0.323, pos: 0.677, compound: 0.6369}
      *
      * - 'compound' is the most useful score:
-     * > 0.05  = Positive
-     * < -0.05 = Negative
-     * (between) = Neutral
+     * > 0.05 = positive
+     * < -0.05= negative
+     * otherwise neutral
      */
-    // --- End of Sentiment Analysis ---
 
-
-    // 3. Return both the headline AND the sentiment
     return NextResponse.json({ 
       headline: headline,
       sentiment: sentiment 
